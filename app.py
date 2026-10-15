@@ -67,7 +67,7 @@ game_walkthrough_code = """
                 document.getElementById('music-btn').innerText = "⏸️ TẠM DỪNG NHẠC";
             } else {
                 audio.pause();
-document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
+                document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
             }
         }
 
@@ -77,7 +77,6 @@ document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
         scene.fog = new THREE.FogExp2(0x020204, 0.03);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / 650, 0.1, 1000);
-        // Điểm xuất phát của nhân vật
         camera.position.set(0, 2, 14);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -89,12 +88,11 @@ document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
-        controls.enablePan = false; // Khóa di chuột tịnh tiến, chỉ giữ xoay đầu nhìn xung quanh
-        controls.maxPolarAngle = Math.PI / 2 - 0.02; // Không cho camera chúc xuống sàn
+        controls.enablePan = false; 
+        controls.maxPolarAngle = Math.PI / 2 - 0.02; 
         controls.minDistance = 1;
         controls.maxDistance = 25;
 
-        // Trạng thái các phím bước đi W, A, S, D
         let keys = { KeyW: false, KeyS: false, KeyA: false, KeyD: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
         window.addEventListener('keydown', (e) => { if (e.code in keys) keys[e.code] = true; });
@@ -113,7 +111,7 @@ document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
             { id: "lady", title: "Lady with an Ermine", meta: "Leonardo da Vinci | Chi tiết bảo tàng Krakow", url: "https://wikimedia.org" },
             { id: "scream", title: "Skrik (The Scream)", meta: "Edvard Munch | Kiệt tác trường phái biểu hiện", url: "https://wikimedia.org" },
             { id: "lastsupper", title: "The Last Supper (Bữa ăn tối cuối cùng) - Ẩn Hiện Thâm Sâu", meta: "Leonardo da Vinci | Đặt tại không gian xa nhất & mang sắc độ tối huyền bí", url: "https://wikimedia.org" },
-{ id: "pearlear", title: "Girl with a Pearl Earring (Thiếu nữ đeo hoa tai ngọc trai)", meta: "Johannes Vermeer | Kiệt tác hội họa Hà Lan thế kỷ 17", url: "https://wikimedia.org" },
+            { id: "pearlear", title: "Girl with a Pearl Earring (Thiếu nữ đeo hoa tai ngọc trai)", meta: "Johannes Vermeer | Kiệt tác hội họa Hà Lan thế kỷ 17", url: "https://wikimedia.org" },
             { id: "adameve", title: "Adam and Eve (Adam và Eva)", meta: "Albrecht Dürer | Tác phẩm tranh khắc Phục Hưng năm 1507", url: "https://wikimedia.org" }
         ];
 
@@ -171,121 +169,10 @@ document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
             particleSystem = new THREE.Points(geometry, material);
             scene.add(particleSystem);
             
-document.getElementById('art-title').innerText = artList[0].title;
+            document.getElementById('art-title').innerText = artList[0].title;
             document.getElementById('art-meta').innerText = artList[0].meta;
         }
-// 5. Thuật toán rã hạt khuyết loang lổ đồng bộ 5 giây
-function triggerParticleTransition() {
-if (isTransitioning || !particleSystem) return;
-isTransitioning = true;
-const nextIndex = (currentArtIndex + 1) % artList.length;
-const nextArt = artList[nextIndex];
-const newData = artDataCache[nextIndex];
-document.getElementById('info-overlay').style.opacity = 0;
-const posAttr = particleSystem.geometry.attributes.position;
-const colorAttr = particleSystem.geometry.attributes.color;
-let indices = Array.from({length: particleCount}, (_, i) => i);
-for (let i = indices.length - 1; i > 0; i--) {
-const j = Math.floor(Math.random() * (i + 1));
-[indices[i], indices[j]] = [indices[j], indices[i]];
-}
-const totalDuration = 5000;
-indices.forEach((i, order) => {
-const delay = (order / particleCount) * 1500;
-const travelTime = totalDuration - delay;
-const pX = i % w; const pY = Math.floor(i / w);
-const nIdx = (pY * w + pX) * 4;
-let targetZ = -1.9;
-let scaleFactor = 6.5;
-if (nextArt.id === "lastsupper") {
-targetZ = -6.0; // Đẩy xa The Last Supper vào cuối sảnh tối
-scaleFactor = 11.0;
-}
-const targetX = ((pX / w) - 0.5) * scaleFactor;
-const targetY = (-(pY / h) + 0.5) * 4.5 + 4.5;
-const burstX = posAttr.array[i * 3] + (Math.random() - 0.5) * 5.5;
-const burstY = posAttr.array[i * 3 + 1] + (Math.random() - 0.5) * 5.5;
-const burstZ = posAttr.array[i * 3 + 2] + (Math.random()) * 8.5;
-new TWEEN.Tween(posAttr.array)
-.to({ [i * 3]: burstX, [i * 3 + 1]: burstY, [i * 3 + 2]: burstZ }, travelTime * 0.3)
-.easing(TWEEN.Easing.Quadratic.Out)
-.delay(delay)
-.chain(
-new TWEEN.Tween(posAttr.array)
-.to({ [i * 3]: targetX, [i * 3 + 1]: targetY, [i * 3 + 2]: targetZ }, travelTime * 0.7)
-.easing(TWEEN.Easing.Cubic.InOut)
-)
-.start();
-let brightnessDivider = (nextArt.id === "lastsupper") ? 2.5 : 1.0; // Giảm độ sáng làm tối The Last Supper
-new TWEEN.Tween(colorAttr.array)
-.to({
-[i * 3]: (newData[nIdx] / 255) / brightnessDivider,
-[i * 3 + 1]: (newData[nIdx + 1] / 255) / brightnessDivider,
-[i * 3 + 2]: (newData[nIdx + 2] / 255) / brightnessDivider
-}, travelTime)
-.delay(delay)
-.start();
-});
-setTimeout(() => {
-currentArtIndex = nextIndex;
-document.getElementById('art-title').innerText = artList[currentArtIndex].title;
-document.getElementById('art-meta').innerText = artList[currentArtIndex].meta;
-document.getElementById('info-overlay').style.opacity = 1;
-isTransitioning = false;
-}, totalDuration);
-}
-// Click chuột trái gọn gàng không kéo rê để chuyển tranh (kiểm tra khoảng cách với tranh)
-let isMouseDown = false, mouseMoveDistance = 0;
-window.addEventListener('mousedown', () => { isMouseDown = true; mouseMoveDistance = 0; });
-window.addEventListener('mousemove', () => { if (isMouseDown) mouseMoveDistance++; });
-window.addEventListener('mouseup', () => {
-isMouseDown = false;
-if (mouseMoveDistance < 5) { // Người dùng nhấp chuột chứ không phải đang kéo xoay camera
-let currentArt = artList[currentArtIndex];
-let maxClickDistance = (currentArt.id === "lastsupper") ? 14 : 9;
-// Đo cự ly camera tới tâm tranh
-if (camera.position.z < maxClickDistance) {
-triggerParticleTransition();
-} else {
-document.getElementById('art-title').innerText = "⚠️ Bạn đang đứng quá xa bức tranh!";
-document.getElementById('art-meta').innerText = "Hãy giữ phím W để tiến bộ chân lại gần bức tường treo tranh hơn.";
-}
-}
-});
-// 6. Vòng lặp chuyển động Game Loop cập nhật bước chân W, A, S, D
-const speed = 0.15;
-function animate() {
-requestAnimationFrame(animate);
-TWEEN.update();
-controls.update();
-// Tính toán hướng vector camera để di chuyển nhân vật tiến lùi theo đúng hướng đang nhìn
-const forward = new THREE.Vector3();
-camera.getWorldDirection(forward);
-forward.y = 0; forward.normalize(); // Chỉ đi trên mặt phẳng sàn
-const right = new THREE.Vector3();
-right.crossVectors(forward, camera.up).normalize().negate();
-if (keys.KeyW || keys.ArrowUp) { camera.position.addScaledVector(forward, speed); controls.target.addScaledVector(forward, speed); }
-if (keys.KeyS || keys.ArrowDown) { camera.position.addScaledVector(forward, -speed); controls.target.addScaledVector(forward, -speed); }
-if (keys.KeyA || keys.ArrowLeft) { camera.position.addScaledVector(right, -speed); controls.target.addScaledVector(right, -speed); }
-if (keys.KeyD || keys.ArrowRight) { camera.position.addScaledVector(right, speed); controls.target.addScaledVector(right, speed); }
-// Giới hạn biên bản đồ bảo tàng không cho đi lạc khỏi sảnh
-let frontWallLimit = (artList[currentArtIndex].id === "lastsupper") ? -4.5 : -0.5;
-if (camera.position.z < frontWallLimit) { camera.position.z = frontWallLimit; controls.target.z = frontWallLimit - 5; }
-if (camera.position.z > 20) { camera.position.z = 20; controls.target.z = 15; }
-if (camera.position.x < -15) { camera.position.x = -15; controls.target.x = -15; }
-if (camera.position.x > 15) { camera.position.x = 15; controls.target.x = 15; }
-if (particleSystem) {
-particleSystem.geometry.attributes.position.needsUpdate = true;
-particleSystem.geometry.attributes.color.needsUpdate = true;
-}
-renderer.render(scene, camera);
-}
-animate();
-window.addEventListener('resize', () => {
-camera.aspect = window.innerWidth / 650; camera.updateProjectionMatrix();
-renderer.setSize(window.innerWidth, 650);
-});
 
-
-
-"""
+        function triggerParticleTransition() {
+            if (isTransitioning || !particleSystem) return;
+            isTransitioning = true;

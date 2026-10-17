@@ -14,55 +14,54 @@ if "game_started" not in st.session_state:
 if "current_index" not in st.session_state:
     st.session_state.current_index = 0
 
-# Danh sách bộ sưu tập triển lãm 7 kiệt tác độ phân giải cao
+# Danh sách bộ sưu tập triển lãm 7 kiệt tác độ phân giải cao (Đã đổi link ảnh bảo tàng siêu ổn định)
 art_list = [
     {
         "title": "Đêm đầy sao (The Starry Night - Biến tấu)",
         "artist": "Vincent van Gogh",
-        "meta": "Bản phối cánh đồng hoa rực rỡ sắc màu dựa trên nguyên bản 1889",
-        "url": "https://unsplash.com"
+        "meta": "Bản phối cảnh cánh đồng hoa rực rỡ sắc màu tuyệt đẹp dựa trên siêu phẩm bầu trời cuộn xoáy nguyên bản năm 1889.",
+        "url": "https://wikimedia.org"
     },
     {
         "title": "Mona Lisa",
         "artist": "Leonardo da Vinci",
-        "meta": "Kiệt tác chân dung thời Phục Hưng kinh điển thế giới (Năm 1503)",
+        "meta": "Là một trong những bức chân dung nổi tiếng nhất thế giới thời Phục Hưng với nụ cười bí ẩn đầy cuốn hút (Năm 1503).",
         "url": "https://wikimedia.org"
     },
     {
         "title": "Lady with an Ermine",
         "artist": "Leonardo da Vinci",
-        "meta": "Bức chân dung vẽ nàng Cecilia Gallerani ôm con chồn trắng (Năm 1489–1490)",
+        "meta": "Bức chân dung vẽ nàng Cecilia Gallerani ôm một con chồn trắng thanh cao, biểu thị cho sự thuần khiết và quyền lực (Năm 1489–1490).",
         "url": "https://wikimedia.org"
     },
     {
         "title": "Skrik (The Scream - Tiếng thét)",
         "artist": "Edvard Munch",
-        "meta": "Tác phẩm biểu tượng xuất sắc của trường phái biểu hiện (Năm 1893)",
+        "meta": "Tác phẩm biểu tượng kinh điển của trường phái biểu hiện, thể hiện sự lo âu, cô độc tột cùng của con người trước thiên nhiên (Năm 1893).",
         "url": "https://wikimedia.org"
     },
     {
         "title": "The Last Supper (Bữa ăn tối cuối cùng)",
         "artist": "Leonardo da Vinci",
-        "meta": "Kiệt tác bích họa thâm sâu, đặt trang nghiêm ở sảnh xa nhất (Năm 1495–1498)",
+        "meta": "Kiệt tác bích họa thâm sâu ghi lại khoảnh khắc đầy kịch tính của Chúa Jesus cùng các môn đệ, đặt trang nghiêm ở sảnh xa nhất (Năm 1495–1498).",
         "url": "https://wikimedia.org"
     },
     {
         "title": "Girl with a Pearl Earring (Thiếu nữ đeo hoa tai ngọc trai)",
         "artist": "Johannes Vermeer",
-        "meta": "Bức họa chân dung lừng danh của nền hội họa Hà Lan thế kỷ 17",
+        "meta": "Được mệnh danh là 'Mona Lisa phương Bắc', bức chân dung lừng danh thế giới với ánh nhìn hút hồn của thiếu nữ Hà Lan thế kỷ 17.",
         "url": "https://wikimedia.org"
     },
     {
         "title": "Adam and Eve (Adam và Eva)",
         "artist": "Albrecht Dürer",
-        "meta": "Tác phẩm tranh khắc Phục Hưng đỉnh cao cân đối hình thể (Năm 1507)",
+        "meta": "Tác phẩm tranh khắc Phục Hưng đỉnh cao thể hiện sự cân đối, hoàn hảo tuyệt mỹ về tỷ lệ cơ thể hình thể con người (Năm 1507).",
         "url": "https://wikimedia.org"
     }
 ]
 
 # --- PHẦN 1: MÀN HÌNH BẮT ĐẦU GAME (START MENU) ---
 if not st.session_state.game_started:
-    # Định dạng giao diện menu chào mừng sang trọng màu tối
     st.markdown(
         """
         <div style="text-align: center; margin-top: 50px; padding: 40px; background-color: #0d0d13; border-radius: 20px; border: 2px solid #d4af37; box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);">
@@ -94,7 +93,7 @@ else:
         """
         <div style="background-color: #1a1a24; padding: 15px; border-radius: 12px; border: 1px solid #d4af37; margin-bottom: 25px;">
             <span style="color: #d4af37; font-weight: bold; font-size: 16px;">🎵 ĐANG PHÁT NHẠC NỀN: Great Little Things (HauXenz - Bản Khèn Bè lofi)</span>
-            <audio src="https://catbox.moe" autoplay loop style="width: 100%; margin-top: 10px;"></audio>
+            <audio src="https://catbox.moe" autoplay loop style="width: 100%; margin-top: 10px;" controls></audio>
         </div>
         """,
         unsafe_allow_html=True
@@ -106,7 +105,7 @@ else:
     current_art = art_list[st.session_state.current_index]
 
     # Chia bố cục trang làm 2 cột: Cột 1 hiện tranh lớn, Cột 2 hiện thông tin giới thiệu chi tiết
-    col1, col2 = st.columns([1.5, 1])
+    col1, col2 = st.columns([1.3, 1])
 
     with col1:
         # Hiển thị bức tranh căng nét, tràn viền khung hình
@@ -129,16 +128,16 @@ else:
 
     st.divider()
 
-    # Thanh nút bấm điều hướng Tiến / Lùi ở dưới cùng màn hình để người chơi bước đi tham quan
-    nav_col1, nav_col2, nav_col3 = st.columns()
+    # Thanh nút bấm điều hướng được sửa lỗi gõ thiếu cấu trúc Python (Đã điền số 3 cột chính xác)
+    nav_col1, nav_col2, nav_col3 = st.columns(3)
 
     with nav_col1:
-        if st.button("⬅️ Quay lại bức tranh trước") and st.session_state.current_index > 0:
+        if st.button("⬅️ Quay lại bức tranh trước", use_container_width=True) and st.session_state.current_index > 0:
             st.session_state.current_index -= 1
             st.rerun()
 
     with nav_col3:
-        if st.button("Đi tới bức tranh tiếp theo ➡️") and st.session_state.current_index < len(art_list) - 1:
+        if st.button("Đi tới bức tranh tiếp theo ➡️", use_container_width=True) and st.session_state.current_index < len(art_list) - 1:
             st.session_state.current_index += 1
             st.rerun()
             

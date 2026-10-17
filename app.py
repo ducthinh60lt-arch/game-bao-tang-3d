@@ -20,8 +20,6 @@ game_walkthrough_code = """
     <style>
         body { margin: 0; overflow: hidden; background-color: #020204; font-family: sans-serif; }
         canvas { width: 100vw; height: 650px; display: block; }
-        
-        /* Bảng hiển thị thông tin tác phẩm nghệ thuật */
         #info-overlay {
             position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
             color: #ffffff; text-align: center; background: rgba(5, 5, 8, 0.85);
@@ -31,8 +29,6 @@ game_walkthrough_code = """
         }
         h2 { margin: 0 0 5px 0; color: #d4af37; font-size: 22px; }
         p { margin: 0; font-size: 14px; color: #ddd; }
-        
-        /* Nút bật tắt nhạc riêng biệt ở góc trên */
         #music-btn {
             position: absolute; top: 15px; left: 15px;
             background: #d4af37; color: #000; border: none; padding: 10px 20px;
@@ -71,13 +67,11 @@ game_walkthrough_code = """
             }
         }
 
-        // 1. Cấu hình không gian phòng sảnh bảo tàng
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x020204);
         scene.fog = new THREE.FogExp2(0x020204, 0.03);
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / 650, 0.1, 1000);
-        // Đặt vị trí xuất phát của nhân vật ở tầm mắt người
         camera.position.set(0, 2, 14);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
@@ -85,7 +79,6 @@ game_walkthrough_code = """
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         document.body.appendChild(renderer.domElement);
 
-        // 2. Bộ điều khiển camera kéo thả chuột chạy cực mượt độc lập không lo bị Streamlit chặn
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -94,24 +87,20 @@ game_walkthrough_code = """
         controls.minDistance = 1;
         controls.maxDistance = 25;
 
-        // Trạng thái cụm phím di chuyển nhân vật
         let keys = { KeyW: false, KeyS: false, KeyA: false, KeyD: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
         window.addEventListener('keydown', (e) => { if (e.code in keys) keys[e.code] = true; });
         window.addEventListener('keyup', (e) => { if (e.code in keys) keys[e.code] = false; });
 
-        // 3. Dựng cấu trúc mặt Sàn gỗ cho phòng bảo tàng
         const floorGeo = new THREE.PlaneGeometry(60, 60);
         const floorMat = new THREE.MeshBasicMaterial({ color: 0x110906 });
         const floor = new THREE.Mesh(floorGeo, floorMat);
         floor.rotation.x = -Math.PI / 2; scene.add(floor);
 
-        // Giả lập một bức tường mờ phía sau khung tranh tạo chiều sâu không gian
         const wallGeo = new THREE.PlaneGeometry(40, 12);
         const wallMat = new THREE.MeshBasicMaterial({ color: 0x05060a });
         const wall = new THREE.Mesh(wallGeo, wallMat);
         wall.position.set(0, 6, -2.1); scene.add(wall);
 
-        // 4. Danh sách bộ sưu tập 7 kiệt tác (Sử dụng thuật toán toán học tự tạo hình khối màu sắc lộng lẫy, loại bỏ hoàn toàn việc tải ảnh ngoài tránh lỗi)
         const artList = [
             { id: "starry", title: "Đêm đầy sao (The Starry Night - Biến tấu)", meta: "Vincent van Gogh | Các hạt sáng xanh dương và vàng cuộn xoáy lộng lẫy", type: "swirl", r: 0.1, g: 0.3, b: 0.8 },
             { id: "monalisa", title: "Mona Lisa", meta: "Leonardo da Vinci | Tông màu nâu vàng cổ điển Phục Hưng huyền bí", type: "portrait", r: 0.4, g: 0.3, b: 0.1 },
@@ -123,12 +112,11 @@ game_walkthrough_code = """
         ];
 
         let currentArtIndex = 0;
-        const particleCount = 55000; // 55.000 Hạt lấp lánh độ phân giải cực cao
+        const particleCount = 45000;
         let particleSystem;
         let isTransitioning = false;
-        const w = 250; const h = 220;
+        const w = 250; const h = 180;
 
-        // Hàm thuật toán sinh màu sắc nghệ thuật trực tiếp trong code
         function generateProceduralColors(type, baseR, baseG, baseB, i) {
             const pX = i % w; const pY = Math.floor(i / h);
             const nX = pX / w; const nY = pY / h;
@@ -153,7 +141,6 @@ game_walkthrough_code = """
             return { r: Math.max(0, Math.min(1, r)), g: Math.max(0, Math.min(1, g)), b: Math.max(0, Math.min(1, b)) };
         }
 
-        // Khởi tạo ma trận hạt ánh sáng ngay lập tức
         function initParticles() {
             const geometry = new THREE.BufferGeometry();
             const pPositions = new Float32Array(particleCount * 3);
@@ -180,3 +167,25 @@ game_walkthrough_code = """
 
             const material = new THREE.PointsMaterial({
                 size: 0.045, map: new THREE.CanvasTexture(canvasP),
+                vertexColors: true, transparent: true, opacity: 0.95,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+            
+            document.getElementById('art-title').innerText = artList[0].title;
+            document.getElementById('art-meta').innerText = artList[0].meta;
+        }
+
+        initParticles();
+
+        function triggerParticleTransition() {
+            if (isTransitioning || !particleSystem) return;
+            isTransitioning = true;
+
+            const nextIndex = (currentArtIndex + 1) % artList.length;
+            const nextArt = artList[nextIndex];
+            document.getElementById('info-overlay').style.opacity = 0;
+
+            const posAttr = particleSystem.geometry.attributes.position;

@@ -189,3 +189,104 @@ game_walkthrough_code = """
             document.getElementById('info-overlay').style.opacity = 0;
 
             const posAttr = particleSystem.geometry.attributes.position;
+const colorAttr = particleSystem.geometry.attributes.color;
+let indices = Array.from({length: particleCount}, (_, i) => i);
+for (let i = indices.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[indices[i], indices[j]] = [indices[j], indices[i]];
+}
+const totalDuration = 5000;
+indices.forEach((i, order) => {
+const delay = (order / particleCount) * 1500;
+const travelTime = totalDuration - delay;
+const pX = i % w; const pY = Math.floor(i / w);
+let targetZ = -1.9;
+let scaleFactor = 6.5;
+if (nextArt.id === "lastsupper") {
+targetZ = -6.0;
+scaleFactor = 11.0;
+}
+const targetX = ((pX / w) - 0.5) * scaleFactor;
+const targetY = (-(pY / h) + 0.5) * 4.5 + 4.5;
+const burstX = posAttr.array[i * 3] + (Math.random() - 0.5) * 5.5;
+const burstY = posAttr.array[i * 3 + 1] + (Math.random() - 0.5) * 5.5;
+const burstZ = posAttr.array[i * 3 + 2] + (Math.random()) * 8.5;
+new TWEEN.Tween(posAttr.array)
+.to({ [i * 3]: burstX, [i * 3 + 1]: burstY, [i * 3 + 2]: burstZ }, travelTime * 0.3)
+.easing(TWEEN.Easing.Quadratic.Out)
+.delay(delay)
+.chain(
+new TWEEN.Tween(posAttr.array)
+.to({ [i * 3]: targetX, [i * 3 + 1]: targetY, [i * 3 + 2]: targetZ }, travelTime * 0.7)
+.easing(TWEEN.Easing.Cubic.InOut)
+)
+.start();
+let c = generateProceduralColors(nextArt.type, nextArt.r, nextArt.g, nextArt.b, i);
+let brightnessDivider = (nextArt.id === "lastsupper") ? 2.5 : 1.0;
+new TWEEN.Tween(colorAttr.array)
+.to({
+[i * 3]: c.r / brightnessDivider,
+[i * 3 + 1]: c.g / brightnessDivider,
+[i * 3 + 2]: c.b / brightnessDivider
+}, travelTime)
+.delay(delay)
+.start();
+});
+setTimeout(() => {
+currentArtIndex = nextIndex;
+document.getElementById('art-title').innerText = artList[currentArtIndex].title;
+document.getElementById('art-meta').innerText = artList[currentArtIndex].meta;
+document.getElementById('info-overlay').style.opacity = 1;
+isTransitioning = false;
+}, totalDuration);
+}
+let isMouseDown = false, mouseMoveDistance = 0;
+window.addEventListener('mousedown', () => { isMouseDown = true; mouseMoveDistance = 0; });
+window.addEventListener('mousemove', () => { if (isMouseDown) mouseMoveDistance++; });
+window.addEventListener('mouseup', () => {
+isMouseDown = false;
+if (mouseMoveDistance < 5) {
+let currentArt = artList[currentArtIndex];
+let maxClickDistance = (currentArt.id === "lastsupper") ? 14 : 9;
+if (camera.position.z < maxClickDistance) {
+triggerParticleTransition();
+} else {
+document.getElementById('art-title').innerText = "⚠️ Bạn đang đứng quá xa bức tranh!";
+document.getElementById('art-meta').innerText = "Hãy giữ phím W để tiến bộ chân lại gần bức tường treo tranh hơn.";
+}
+}
+});
+const speed = 0.15;
+function animate() {
+requestAnimationFrame(animate);
+TWEEN.update();
+controls.update();
+const forward = new THREE.Vector3();
+camera.getWorldDirection(forward);
+forward.y = 0; forward.normalize();
+const right = new THREE.Vector3();
+right.crossVectors(forward, camera.up).normalize().negate();
+if (keys.KeyW || keys.ArrowUp) { camera.position.addScaledVector(forward, speed); controls.target.addScaledVector(forward, speed); }
+if (keys.KeyS || keys.ArrowDown) { camera.position.addScaledVector(forward, -speed); controls.target.addScaledVector(forward, -speed); }
+if (keys.KeyA || keys.ArrowLeft) { camera.position.addScaledVector(right, -speed); controls.target.addScaledVector(right, -speed); }
+if (keys.KeyD || keys.ArrowRight) { camera.position.addScaledVector(right, speed); controls.target.addScaledVector(right, speed); }
+let frontWallLimit = (artList[currentArtIndex].id === "lastsupper") ? -4.5 : -0.5;
+if (camera.position.z < frontWallLimit) { camera.position.z = frontWallLimit; controls.target.z = frontWallLimit - 5; }
+if (camera.position.z > 20) { camera.position.z = 20; controls.target.z = 15; }
+if (camera.position.x < -15) { camera.position.x = -15; controls.target.x = -15; }
+if (camera.position.x > 15) { camera.position.x = 15; controls.target.x = 15; }
+if (particleSystem) {
+particleSystem.geometry.attributes.position.needsUpdate = true;
+particleSystem.geometry.attributes.color.needsUpdate = true;
+}
+renderer.render(scene, camera);
+}
+animate();
+window.addEventListener('resize', () => {
+camera.aspect = window.innerWidth / 650; camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth, 650);
+});
+
+
+
+"""

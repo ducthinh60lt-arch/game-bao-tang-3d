@@ -1,110 +1,134 @@
-  // Không khóa chuột ngay trên nút; người chơi nhấp vào khung game để bắt đầu nhìn.
-});
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Đoán Số May Mắn</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #74b9ff, #a29bfe);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .game-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 { color: #6c5ce7; margin-bottom: 10px; }
+        p { color: #2d3436; font-size: 16px; }
+        input[type="number"] {
+            width: 80%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
+            font-size: 18px;
+            text-align: center;
+        }
+        button {
+            background-color: #6c5ce7;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background-color: #5b4cc4; }
+        .message { margin-top: 20px; font-weight: bold; font-size: 18px; }
+        .turns { color: #b2bec3; margin-top: 10px; font-size: 14px; }
+        .reset-btn { background-color: #00cec9; margin-top: 15px; display: none; }
+        .reset-btn:hover { background-color: #00b894; }
+    </style>
+</head>
+<body>
 
-renderer.domElement.addEventListener("click", () => {
-  if (started && !controls.isLocked) controls.lock();
-});
+<div class="game-container">
+    <h1>🎯 Đoán Số May Mắn</h1>
+    <p>Máy tính đã nghĩ một số từ <b>1 đến 100</b>.<br>Bạn có tối đa <b>7 lượt</b> để đoán!</p>
+    
+    <input type="number" id="guessInput" min="1" max="100" placeholder="Nhập số từ 1-100">
+    <br>
+    <button onclick="checkGuess()" id="submitBtn">Đoán thử</button>
+    <button onclick="initGame()" class="reset-btn" id="resetBtn">Chơi lại 🔄</button>
 
-controls.addEventListener("lock", () => {
-  if (started) say("Dùng WASD để đi, rê chuột để nhìn. Nhắm vào tranh và nhấp chuột khi đứng gần.");
-});
-controls.addEventListener("unlock", () => {
-  if (started) say("Chuột đã được thả. Nhấp vào khung game để tiếp tục.");
-});
-
-const raycaster = new THREE.Raycaster();
-raycaster.params.Points.threshold = .3;
-renderer.domElement.addEventListener("pointerdown", event => {
-  if (!started || !controls.isLocked || transitionRunning) return;
-  // Nhấp chuột khi đang điều khiển góc nhìn không phải lúc nào cũng tạo click,
-  // nên việc chọn tranh dùng ray từ tâm màn hình trong sự kiện click.
-});
-renderer.domElement.addEventListener("click", event => {
-  if (!started || !controls.isLocked || transitionRunning) return;
-  raycaster.setFromCamera(new THREE.Vector2(0,0), camera);
-  const hits = raycaster.intersectObjects(paintings.map(p=>p.particles), false);
-  if (!hits.length) return;
-  const painting = paintings.find(p=>p.particles===hits[0].object);
-  if (!painting) return;
-
-  const distance = camera.position.distanceTo(painting.group.position);
-  if (distance > 10.5) {
-    say("Đứng xa quá! Hãy tiến lại gần bức tranh rồi nhấp.");
-    return;
-  }
-
-  transitionRunning = true;
-  updateInfo(painting.data);
-  say("Bức tranh đang rã thành những hạt màu...");
-  const arr = painting.geometry.attributes.position.array;
-  const target = painting.targets;
-  const start = arr.slice();
-  const t0 = performance.now();
-  const duration = 2600;
-
-  function dissolve(now) {
-    const t = Math.min(1,(now-t0)/duration);
-    const spread = Math.sin(Math.PI*t);
-    for (let i=0; i<painting.count; i++) {
-      const j=i*3;
-      const phase=i*12.9898;
-      arr[j] = THREE.MathUtils.lerp(start[j],target[j],t) + Math.sin(phase+t*18)*spread*.9;
-      arr[j+1] = THREE.MathUtils.lerp(start[j+1],target[j+1],t) + Math.cos(phase*.7+t*16)*spread*.9;
-      arr[j+2] = THREE.MathUtils.lerp(start[j+2],target[j+2],t) + Math.sin(phase*.3+t*20)*spread*2.2;
-    }
-    painting.geometry.attributes.position.needsUpdate = true;
-    painting.particles.material.opacity = .25 + .75*Math.abs(2*t-1);
-    if (t<1) requestAnimationFrame(dissolve);
-    else {
-      arr.set(target);
-      painting.geometry.attributes.position.needsUpdate = true;
-      painting.particles.material.opacity=1;
-      transitionRunning=false;
-      say("Các hạt màu đã tái hợp thành tác phẩm. Hãy tiếp tục khám phá!");
-    }
-  }
-  requestAnimationFrame(dissolve);
-});
-
-document.getElementById("music").addEventListener("click", async () => {
-  const audio = document.getElementById("audio");
-  const button = document.getElementById("music");
-  try {
-    if (audio.paused) {
-      await audio.play();
-      button.textContent = "Ⅱ TẠM DỪNG NHẠC";
-    } else {
-      audio.pause();
-      button.textContent = "♫ BẬT NHẠC";
-    }
-  } catch (err) {
-    say("Chưa phát được nhạc: hãy thay URL mẫu bằng đường dẫn trực tiếp tới file MP3 hợp pháp.");
-  }
-});
-
-const clock = new THREE.Clock();
-function animate() {
-  requestAnimationFrame(animate);
-  const dt = Math.min(clock.getDelta(), .05);
-  if (started && controls.isLocked && !transitionRunning) {
-    const speed=5.0*dt;
-    if (keys.KeyW || keys.ArrowUp) controls.moveForward(speed);
-    if (keys.KeyS || keys.ArrowDown) controls.moveForward(-speed);
-    if (keys.KeyA || keys.ArrowLeft) controls.moveRight(-speed);
-    if (keys.KeyD || keys.ArrowRight) controls.moveRight(speed);
-    const p=controls.getObject().position;
-    p.x=THREE.MathUtils.clamp(p.x,-14.5,14.5);
-    p.z=THREE.MathUtils.clamp(p.z,-24.5,20.5);
-    p.y=1.7;
-  }
-  renderer.render(scene,camera);
-}
-animate();
-</script>
+    <div class="message" id="message"></div>
+    <div class="turns" id="turnsLeft"></div>
 </div>
+
+<script>
+    let secretChallengeNumber;
+    let attemptsLeft;
+    const maxAttempts = 7;
+
+    function initGame() {
+        secretChallengeNumber = Math.floor(Math.random() * 100) + 1;
+        attemptsLeft = maxAttempts;
+        document.getElementById("message").innerText = "";
+        document.getElementById("message").style.color = "#2d3436";
+        document.getElementById("turnsLeft").innerText = `Bạn còn ${attemptsLeft} lượt đoán.`;
+        document.getElementById("guessInput").value = "";
+        document.getElementById("guessInput").disabled = false;
+        document.getElementById("submitBtn").style.display = "inline-block";
+        document.getElementById("resetBtn").style.display = "none";
+    }
+
+    function checkGuess() {
+        const inputElement = document.getElementById("guessInput");
+        const guess = parseInt(inputElement.value);
+        const messageElement = document.getElementById("message");
+        const turnsElement = document.getElementById("turnsLeft");
+
+        if (isNaN(guess) || guess < 1 || guess > 100) {
+            messageElement.innerText = "❌ Vui lòng nhập số hợp lệ từ 1 đến 100!";
+            messageElement.style.color = "#d63031";
+            return;
+        }
+
+        attemptsLeft--;
+
+        if (guess === secretChallengeNumber) {
+            messageElement.innerText = `🎉 XUẤT SẮC!!! Bạn đã đoán đúng số ${secretChallengeNumber}!`;
+            messageElement.style.color = "#2ed573";
+            endGame();
+        } else if (attemptsLeft === 0) {
+            messageElement.innerText = `💥 Thua cuộc! Số đúng là: ${secretChallengeNumber}.`;
+            messageElement.style.color = "#d63031";
+            endGame();
+        } else {
+            if (guess < secretChallengeNumber) {
+                messageElement.innerText = "📉 Thấp quá! Số bí mật lớn hơn.";
+                messageElement.style.color = "#e17055";
+            } else {
+                messageElement.innerText = "📈 Cao quá! Số bí mật nhỏ hơn.";
+                messageElement.style.color = "#e17055";
+            }
+            turnsElement.innerText = `Bạn còn ${attemptsLeft} lượt đoán.`;
+        }
+        inputElement.value = "";
+        inputElement.focus();
+    }
+
+    function endGame() {
+        document.getElementById("guessInput").disabled = true;
+        document.getElementById("submitBtn").style.display = "none";
+        document.getElementById("resetBtn").style.display = "inline-block";
+        document.getElementById("turnsLeft").innerText = "";
+    }
+
+    // Khởi tạo game khi tải trang
+    initGame();
+</script>
+
 </body>
 </html>
-"""
-
-components.html(game_html, height=735, scrolling=False)
-

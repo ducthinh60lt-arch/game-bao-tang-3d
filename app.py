@@ -232,6 +232,136 @@ game_html = r"""
       const randType = Math.floor(Math.random() * pool.length);
       const randColor = Math.floor(Math.random() * 6) + 1;
       const matrix = pool[randType];
+      box.className = 'shape-box';
+box.id = shape-${i};
+box.style.gridTemplateRows = repeat(${matrix.length}, 1fr);
+box.style.gridTemplateColumns = repeat(${matrix[0].length}, 1fr);
+box.addEventListener('click', (e) => {
+if (currentShapes[i].used) return;
+document.querySelectorAll('.shape-box').forEach(b => b.classList.remove('selected'));
+box.classList.add('selected');
+selectedShapeIndex = i;
+e.stopPropagation();
+});
+for (let r = 0; r < matrix.length; r++) {
+for (let c = 0; c < matrix[0].length; c++) {
+const sCell = document.createElement('div');
+if (matrix[r][c]) {
+sCell.className = 's-cell';
+sCell.style.background = colors[randColor];
+} else {
+sCell.className = 'empty-s-cell';
+}
+box.appendChild(sCell);
+}
+}
+shapesContainerDOM.appendChild(box);
+}
+}
+function renderBoard() {
+const cells = gridDOM.children;
+for (let r = 0; r < BOARD_SIZE; r++) {
+for (let c = 0; c < BOARD_SIZE; c++) {
+const idx = r * BOARD_SIZE + c;
+const val = board[r][c];
+if (val > 0) {
+cells[idx].style.background = colors[val];
+cells[idx].classList.add('filled');
+} else {
+cells[idx].style.background = '#475569';
+cells[idx].classList.remove('filled');
+}
+}
+}
+}
+function canPlace(matrix, startR, startC) {
+if (startR + matrix.length > BOARD_SIZE || startC + matrix[0].length > BOARD_SIZE) return false;
+for (let r = 0; r < matrix.length; r++) {
+for (let c = 0; c < matrix[0].length; c++) {
+if (matrix[r][c] && board[startR + r][startC + c] > 0) return false;
+}
+}
+return true;
+}
+function handleCellClick(startR, startC) {
+if (selectedShapeIndex === null) return;
+const shape = currentShapes[selectedShapeIndex];
+if (canPlace(shape.matrix, startR, startC)) {
+for (let r = 0; r < shape.matrix.length; r++) {
+for (let c = 0; c < shape.matrix[0].length; c++) {
+if (shape.matrix[r][c]) {
+board[startR + r][startC + c] = shape.color;
+}
+}
+}
+shape.used = true;
+const boxDOM = document.getElementById(shape-${selectedShapeIndex});
+boxDOM.style.visibility = 'hidden';
+boxDOM.classList.remove('selected');
+selectedShapeIndex = null;
+score += 20;
+checkCombos();
+renderBoard();
+if (currentShapes.every(s => s.used)) {
+spawnShapes();
+}
+if (checkGameOver()) {
+gameOverDOM.style.display = 'block';
+}
+}
+}
+function checkCombos() {
+let rowsToClear = [], colsToClear = [];
+for (let r = 0; r < BOARD_SIZE; r++) {
+if (board[r].every(v => v > 0)) rowsToClear.push(r);
+}
+for (let c = 0; c < BOARD_SIZE; c++) {
+let full = true;
+for (let r = 0; r < BOARD_SIZE; r++) { if (board[r][c] === 0) { full = false; break; } }
+if (full) colsToClear.push(c);
+}
+const totalLines = rowsToClear.length + colsToClear.length;
+if (totalLines > 0) {
+playBlastSound();
+rowsToClear.forEach(r => board[r].fill(0));
+colsToClear.forEach(c => { for (let r = 0; r < BOARD_SIZE; r++) board[r][c] = 0; });
+score += totalLines * 100;
+if (score > highScore) {
+highScore = score;
+localStorage.setItem('block_puzzle_high', highScore);
+document.getElementById('high-score').textContent = highScore;
+}
+}
+document.getElementById('score').textContent = score;
+}
+function checkGameOver() {
+for (let i = 0; i < currentShapes.length; i++) {
+const shape = currentShapes[i];
+if (shape.used) continue;
+for (let r = 0; r < BOARD_SIZE; r++) {
+for (let c = 0; c < BOARD_SIZE; c++) {
+if (canPlace(shape.matrix, r, c)) return false;
+}
+}
+}
+return currentShapes.every(s => s.used) ? false : true;
+}
+function restartGame() {
+board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+score = 0;
+document.getElementById('score').textContent = score;
+gameOverDOM.style.display = 'none';
+initBoard();
+spawnShapes();
+renderBoard();
+}
+document.getElementById('reset-btn').addEventListener('click', restartGame);
+})();
+
+
+
+"""
+components.html(game_html, height=590, scrolling=False)
 
       currentShapes.push({ matrix, color: randColor, used: false });
 

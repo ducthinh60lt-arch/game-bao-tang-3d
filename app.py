@@ -1,290 +1,320 @@
-import streamlit as st
+    import streamlit as st
 import streamlit.components.v1 as components
 
-# Cấu hình trang web Streamlit hiển thị tràn viền tối đa cho game
 st.set_page_config(
     page_title="Hành Trình Bảo Tàng 3D - 7 Kiệt Tác",
     page_icon="🎮",
-    layout="wide"
+    layout="wide",
 )
 
-st.title("🎮 Game Nhập Vai: Bảo Tàng 3D & 7 Kiệt Tác Nghệ Thuật")
-st.write("🕹️ **Cách điều khiển:** Bấm nút **BẬT NHẠC** trước để kích hoạt bài **Great Little Things**. Sử dụng **W, A, S, D (hoặc Mũi tên)** để di chuyển bước đi. **Nhấn giữ chuột trái và kéo** để xoay hướng nhìn 360 độ. Tiến lại gần tranh và **Bấm chuột trái** (không kéo) để rã hạt màu!")
+st.title("🎮 Hành Trình Bảo Tàng 3D – 7 Kiệt Tác")
+st.markdown(
+    "Dùng **W/A/S/D** hoặc **phím mũi tên** để di chuyển, "
+    "kéo chuột trái để xoay góc nhìn. Đến gần tranh rồi nhấn chuột "
+    "để chuyển sang tác phẩm tiếp theo. Nhấn **BẬT NHẠC** để bật nhạc."
+)
 
-# Mã HTML + JavaScript dựng toàn bộ cơ chế game di chuyển tự do, hạt màu và nhạc nền
-game_walkthrough_code = """
-<!DOCTYPE html>
+game_html = r"""
+<!doctype html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <style>
-        body { margin: 0; overflow: hidden; background-color: #020204; font-family: sans-serif; }
-        canvas { width: 100vw; height: 650px; display: block; }
-        
-        /* Bảng hiển thị thông tin tác phẩm nghệ thuật */
-        #info-overlay {
-            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-            color: #ffffff; text-align: center; background: rgba(5, 5, 8, 0.85);
-            padding: 15px 35px; border-radius: 12px; border: 1px solid #d4af37;
-            pointer-events: none; max-width: 80%; box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
-            transition: opacity 0.5s; opacity: 1;
-        }
-        h2 { margin: 0 0 5px 0; color: #d4af37; font-size: 22px; }
-        p { margin: 0; font-size: 14px; color: #ddd; }
-        
-        /* Nút bật tắt nhạc riêng biệt ở góc trên */
-        #music-btn {
-            position: absolute; top: 15px; left: 15px;
-            background: #d4af37; color: #000; border: none; padding: 10px 20px;
-            font-weight: bold; border-radius: 5px; cursor: pointer; z-index: 10;
-            box-shadow: 0 0 10px rgba(212,175,55,0.4);
-        }
-    </style>
-    <script src="https://cloudflare.com"></script>
-    <script src="https://jsdelivr.net"></script>
-    <script src="https://cloudflare.com"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#020204; color:#fff; font-family:Arial,sans-serif; }
+  #game { position:relative; width:100%; height:680px; overflow:hidden; background:#020204; }
+  canvas { display:block; width:100%; height:100%; }
+  #music-btn { position:absolute; z-index:5; top:14px; left:14px; padding:10px 16px; border:0; border-radius:6px; background:#d4af37; color:#111; font-weight:bold; cursor:pointer; }
+  #help { position:absolute; z-index:4; top:14px; right:14px; max-width:250px; padding:10px 12px; background:#08080ddd; border:1px solid #806c2c; border-radius:8px; font-size:12px; line-height:1.5; }
+  #info { position:absolute; z-index:4; left:50%; bottom:18px; transform:translateX(-50%); width:max-content; max-width:82%; box-sizing:border-box; text-align:center; padding:13px 22px; background:#050508e8; border:1px solid #d4af37; border-radius:10px; pointer-events:none; }
+  #title { color:#e5c65b; font-size:20px; font-weight:bold; margin-bottom:5px; }
+  #meta { color:#eee; font-size:13px; }
+  #error { display:none; position:absolute; z-index:8; inset:65px 12px auto; padding:12px; background:#581b1b; border:1px solid #ff7777; border-radius:8px; }
+  @media(max-width:600px) { #game { height:620px; } #help { top:64px; left:12px; right:auto; } #info { max-width:94%; padding:10px 12px; } #title {font-size:16px;} }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.umd.js"></script>
 </head>
 <body>
+<div id="game">
+  <button id="music-btn" type="button">🎵 BẬT NHẠC NỀN</button>
+  <div id="help">W/A/S/D hoặc phím mũi tên: di chuyển<br>Kéo chuột: xoay góc nhìn<br>Đến gần tranh rồi nhấp chuột: chuyển tranh</div>
+  <div id="error"></div>
+  <div id="info"><div id="title">Đang dựng bảo tàng 3D…</div><div id="meta">Đang khởi tạo không gian triển lãm</div></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('game');
+  const errorBox = document.getElementById('error');
+  function showError(message) {
+    errorBox.style.display = 'block';
+    errorBox.textContent = 'Không thể khởi tạo game: ' + message + '. Hãy kiểm tra kết nối mạng hoặc tải lại trang.';
+  }
+  if (!window.THREE || !THREE.OrbitControls || !window.TWEEN) {
+    showError('Không tải được thư viện 3D');
+    return;
+  }
 
-    <button id="music-btn" onclick="toggleMusic()">🎵 BẬT NHẠC NỀN</button>
+  const artList = [
+  {title:'Đêm đầy sao', meta:'Vincent van Gogh · Bảo tàng nghệ thuật', color:0x2d5eaa, accent:0xf2d35e},
+    {title:'Mona Lisa', meta:'Leonardo da Vinci · Thời kỳ Phục Hưng', color:0x4a6844, accent:0xc7a66b},
+    {title:'Lady with an Ermine', meta:'Leonardo da Vinci · Chân dung Phục Hưng', color:0x6c493b, accent:0xe0c7a0},
+    {title:'The Scream', meta:'Edvard Munch · Trường phái Biểu hiện', color:0x9c4b2e, accent:0xf2b44d},
+    {title:'The Last Supper', meta:'Leonardo da Vinci · Bữa ăn tối cuối cùng', color:0x493b30, accent:0xd4af37},
+    {title:'Girl with a Pearl Earring', meta:'Johannes Vermeer · Hội họa Hà Lan', color:0x244e67, accent:0xe9d7b0},
+    {title:'Adam and Eve', meta:'Albrecht Dürer · Nghệ thuật Phục Hưng', color:0x53643d, accent:0xc7b58b}
+  ];
 
-    <audio id="bg-music" loop>
-        <source src="https://catbox.moe" type="audio/mpeg">
-    </audio>
+  let scene, camera, renderer, controls, currentIndex = 0, transitioning = false;
+  let artworkGroup;
+  const keys = Object.create(null);
+  const speed = 0.12;
 
-    <div id="info-overlay">
-        <h2 id="art-title">Đang quét tia sáng dựng tranh...</h2>
-        <p id="art-meta">Sử dụng các phím W, A, S, D để rảo bước chân tham quan sảnh bảo tàng</p>
-    </div>
+  try {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x08080d);
+    scene.fog = new THREE.Fog(0x08080d, 18, 48);
 
-    <script>
-        const audio = document.getElementById('bg-music');
-        audio.volume = 0.5;
+    camera = new THREE.PerspectiveCamera(65, root.clientWidth / root.clientHeight, 0.1, 100);
+    camera.position.set(0, 2.3, 10);
 
-        function toggleMusic() {
-            if (audio.paused) {
-                audio.play();
-                document.getElementById('music-btn').innerText = "⏸️ TẠM DỪNG NHẠC";
-            } else {
-                audio.pause();
-document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
-            }
+    renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+    renderer.setSize(root.clientWidth, root.clientHeight);
+    root.appendChild(renderer.domElement);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.07;
+    controls.enablePan = false;
+    controls.minDistance = 2;
+    controls.maxDistance = 18;
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.target.set(0, 2.2, 0);
+
+    scene.add(new THREE.HemisphereLight(0xbfcfff, 0x24170f, 1.25));
+    const mainLight = new THREE.PointLight(0xffdca0, 2.0, 35);
+    mainLight.position.set(0, 7, 4);
+    scene.add(mainLight);
+
+
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(38, 38),
+      new THREE.MeshStandardMaterial({color:0x29221d, roughness:0.92})
+    );
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = 0;
+    scene.add(floor);
+
+    // Tường cuối phòng và hai tường bên
+    const wallMat = new THREE.MeshStandardMaterial({color:0x17171e, roughness:0.95});
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(36, 9, 0.4), wallMat);
+    backWall.position.set(0, 4.5, -13);
+    scene.add(backWall);
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 9, 27), wallMat);
+    leftWall.position.set(-18, 4.5, 0);
+    scene.add(leftWall);
+    const rightWall = leftWall.clone();
+    rightWall.position.x = 18;
+    scene.add(rightWall);
+
+    // Đèn trần trang trí
+    for (let x=-12; x<=12; x+=6) {
+      const lamp = new THREE.PointLight(0xffd38a, 1.3, 12);
+      lamp.position.set(x, 7.5, -5);
+      scene.add(lamp);
+      const bulb = new THREE.Mesh(
+        new THREE.SphereGeometry(0.12, 12, 8),
+        new THREE.MeshBasicMaterial({color:0xffe2a0})
+      );
+      bulb.position.copy(lamp.position);
+      scene.add(bulb);
+    }
+    artworkGroup = new THREE.Group();
+    scene.add(artworkGroup);
+
+    function makeArtwork(index) {
+      while (artworkGroup.children.length) {
+        const child = artworkGroup.children.pop();
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) child.material.forEach(m=>m.dispose());
+          else child.material.dispose();
         }
+      }
+      const art = artList[index];
+      const frame = new THREE.Mesh(
+        new THREE.BoxGeometry(5.4, 3.9, 0.25),
+        new THREE.MeshStandardMaterial({color:0xc5a04b, metalness:0.65, roughness:0.32})
+      );
+      frame.position.set(0, 4.1, -12.55);
+      artworkGroup.add(frame);
 
-        // 1. Cấu hình không gian phòng sảnh bảo tàng
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x020204);
-        scene.fog = new THREE.FogExp2(0x020204, 0.03);
+      const canvas = document.createElement('canvas');
+      canvas.width = 600; canvas.height = 420;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#' + art.color.toString(16).padStart(6,'0');
+      ctx.fillRect(0,0,600,420);
+      // Tạo hình minh họa nghệ thuật bằng các mảng màu, không phụ thuộc URL ảnh ngoài
+      const grad = ctx.createLinearGradient(0,0,600,420);
+      grad.addColorStop(0, '#' + art.color.toString(16).padStart(6,'0'));
+      grad.addColorStop(1, '#' + art.accent.toString(16).padStart(6,'0'));
+      ctx.fillStyle = grad; ctx.fillRect(0,0,600,420);
+      ctx.globalAlpha = 0.75;
+      for(let i=0;i<120;i++){
+        ctx.fillStyle = i%2 ? '#fff0b5' : '#101522';
+        ctx.beginPath();
+        const x = (i*137 + index*43)%600, y=(i*71 + index*29)%420;
+        ctx.arc(x,y, (i%7)+2, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(art.title, 300, 380);
+      const texture = new THREE.CanvasTexture(canvas);
+      const picture = new THREE.Mesh(
+        new THREE.PlaneGeometry(5.05, 3.55),
+        new THREE.MeshBasicMaterial({map:texture})
+      );
+      picture.position.set(0,4.1,-12.38);
+      artworkGroup.add(picture);
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / 650, 0.1, 1000);
-        // Điểm xuất phát của nhân vật
-        camera.position.set(0, 2, 14);
+      document.getElementById('title').textContent = art.title;
+      document.getElementById('meta').textContent = art.meta + ' · Nhấp khi đứng gần để xem tác phẩm tiếp theo';
+      const glow = new THREE.PointLight(art.accent, 1.0, 9);
+      glow.position.set(0,5.2,-9.8);
+      artworkGroup.add(glow);
+    }
+    makeArtwork(currentIndex);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, 650);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        document.body.appendChild(renderer.domElement);
+    // Bố trí các cột nhỏ hai bên hành lang
+    for (const side of [-1,1]) {
+      for (let z=-10; z<=8; z+=6) {
+        const column = new THREE.Mesh(
+          new THREE.BoxGeometry(0.65,3.2,0.65),
+          new THREE.MeshStandardMaterial({color:0x5a4936, roughness:0.75})
+        );
+        column.position.set(side*8,1.6,z);
+        scene.add(column);
+      }
+    }
 
-        // 2. Sử dụng OrbitControls tùy biến góc nhìn kéo thả chuột mượt mà chạy tốt online
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.enablePan = false; // Khóa di chuột tịnh tiến, chỉ giữ xoay đầu nhìn xung quanh
-        controls.maxPolarAngle = Math.PI / 2 - 0.02; // Không cho camera chúc xuống sàn
-        controls.minDistance = 1;
-        controls.maxDistance = 25;
+    // Âm thanh tự tạo bằng Web Audio, không cần URL nhạc ngoài
+     let audioCtx = null, masterGain = null, musicTimer = null, noteIndex = 0;
+    const notes = [261.63,329.63,392.00,329.63,293.66,349.23,440.00,349.23];
+    function startMusic() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        document.getElementById('music-btn').textContent = 'Trình duyệt không hỗ trợ nhạc';
+        return;
+      }
+      if (!audioCtx) {
+        audioCtx = new AudioContextClass();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 0.045;
+        masterGain.connect(audioCtx.destination);
+      }
+      audioCtx.resume();
+      if (musicTimer) {
+        clearInterval(musicTimer);
+        musicTimer = null;
+        document.getElementById('music-btn').textContent = '🎵 BẬT NHẠC NỀN';
+        return;
+      }
+      musicTimer = setInterval(() => {
+        if (!audioCtx || audioCtx.state !== 'running') return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = notes[noteIndex % notes.length];
+        noteIndex++;
+        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.65);
+        osc.connect(gain); gain.connect(masterGain);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.7);
+      }, 520);
+      document.getElementById('music-btn').textContent = '⏸️ TẠM DỪNG NHẠC';
+    }
+    document.getElementById('music-btn').addEventListener('click', startMusic);
 
-        // Trạng thái các phím bước đi W, A, S, D
-        let keys = { KeyW: false, KeyS: false, KeyA: false, KeyD: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+// Bấm tranh chỉ khi không kéo chuột và đang ở gần phòng tranh
+    let pointerDown = null;
+    renderer.domElement.addEventListener('pointerdown', e => {
+      pointerDown = {x:e.clientX, y:e.clientY};
+    });
+    renderer.domElement.addEventListener('pointerup', e => {
+      if (!pointerDown) return;
+      const distance = Math.hypot(e.clientX-pointerDown.x, e.clientY-pointerDown.y);
+      pointerDown = null;
+      if (distance > 5 || transitioning) return;
+      const distanceToArtwork = Math.hypot(camera.position.x, camera.position.z - (-10.5));
+      if (distanceToArtwork > 11) {
+        document.getElementById('title').textContent = 'Bạn đang đứng quá xa bức tranh';
+        document.getElementById('meta').textContent = 'Tiến lại gần bức tranh rồi nhấp chuột để chuyển tác phẩm.';
+        return;
+      }
+      transitioning = true;
+      const next = (currentIndex + 1) % artList.length;
+      const oldPos = artworkGroup.position.clone();
+      new TWEEN.Tween(artworkGroup.scale)
+        .to({x:0.05,y:0.05,z:0.05},350)
+        .easing(TWEEN.Easing.Quadratic.In)
+        .onComplete(() => {
+          currentIndex = next;
+          makeArtwork(currentIndex);
+          artworkGroup.scale.set(0.05,0.05,0.05);
+          new TWEEN.Tween(artworkGroup.scale)
+            .to({x:1,y:1,z:1},500)
+            .easing(TWEEN.Easing.Back.Out)
+            .onComplete(() => { transitioning = false; });
+          artworkGroup.position.copy(oldPos);
+        }).start();
+    });
 
-        window.addEventListener('keydown', (e) => { if (e.code in keys) keys[e.code] = true; });
-        window.addEventListener('keyup', (e) => { if (e.code in keys) keys[e.code] = false; });
+    window.addEventListener('keydown', e => {
+      if (e.target && ['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
+      if (e.code in keys) keys[e.code] = true;
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    });
+    window.addEventListener('keyup', e => { if (e.code in keys) keys[e.code] = false; });
+    window.addEventListener('blur', () => { Object.keys(keys).forEach(k=>keys[k]=false); });
 
-        // 3. Dựng cấu trúc Sàn nhà sảnh bảo tàng
-        const floorGeo = new THREE.PlaneGeometry(50, 50);
-        const floorMat = new THREE.MeshBasicMaterial({ color: 0x110906 });
-        const floor = new THREE.Mesh(floorGeo, floorMat);
-        floor.rotation.x = -Math.PI / 2; scene.add(floor);
+    function animate() {
+      requestAnimationFrame(animate);
+      TWEEN.update();
+      controls.update();
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      forward.y = 0; forward.normalize();
+      const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize().negate();
+      if (keys.KeyW || keys.ArrowUp) { camera.position.addScaledVector(forward,speed); controls.target.addScaledVector(forward,speed); }
+      if (keys.KeyS || keys.ArrowDown) { camera.position.addScaledVector(forward,-speed); controls.target.addScaledVector(forward,-speed); }
+      if (keys.KeyA || keys.ArrowLeft) { camera.position.addScaledVector(right,-speed); controls.target.addScaledVector(right,-speed); }
+      if (keys.KeyD || keys.ArrowRight) { camera.position.addScaledVector(right,speed); controls.target.addScaledVector(right,speed); }
+      camera.position.x = THREE.MathUtils.clamp(camera.position.x,-15,15);
+      camera.position.z = THREE.MathUtils.clamp(camera.position.z,-11.2,16);
+      controls.target.x = THREE.MathUtils.clamp(controls.target.x,-15,15);
+      controls.target.z = THREE.MathUtils.clamp(controls.target.z,-12,15);
+      renderer.render(scene,camera);
+    }
+    animate();
 
-        // 4. Danh sách bộ sưu tập triển lãm 7 kiệt tác
-        const artList = [
-            { id: "starry", title: "Đêm đầy sao (The Starry Night - Biến tấu)", meta: "Vincent van Gogh | Bản phối cánh đồng hoa rực rỡ", url: "https://unsplash.com" },
-            { id: "monalisa", title: "Mona Lisa", meta: "Leonardo da Vinci | Kiệt tác thời Phục Hưng gốc", url: "https://wikimedia.org" },
-            { id: "lady", title: "Lady with an Ermine", meta: "Leonardo da Vinci | Chi tiết bảo tàng Krakow", url: "https://wikimedia.org" },
-            { id: "scream", title: "Skrik (The Scream)", meta: "Edvard Munch | Kiệt tác trường phái biểu hiện", url: "https://wikimedia.org" },
-            { id: "lastsupper", title: "The Last Supper (Bữa ăn tối cuối cùng) - Ẩn Hiện Thâm Sâu", meta: "Leonardo da Vinci | Đặt tại không gian xa nhất & mang sắc độ tối huyền bí", url: "https://wikimedia.org" },
-{ id: "pearlear", title: "Girl with a Pearl Earring (Thiếu nữ đeo hoa tai ngọc trai)", meta: "Johannes Vermeer | Kiệt tác hội họa Hà Lan thế kỷ 17", url: "https://wikimedia.org" },
-            { id: "adameve", title: "Adam and Eve (Adam và Eva)", meta: "Albrecht Dürer | Tác phẩm tranh khắc Phục Hưng năm 1507", url: "https://wikimedia.org" }
-        ];
-
-        let currentArtIndex = 0;
-        const particleCount = 55000;
-        let particleSystem;
-        let artDataCache = [];
-        let isTransitioning = false;
-        const w = 250; const h = 220;
-
-        let loadedCount = 0;
-        artList.forEach((art, index) => {
-            const img = new Image(); img.crossOrigin = "Anonymous"; img.src = art.url;
-            img.onload = function() {
-                const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
-                const canvasCtx = canvas.getContext('2d'); canvasCtx.drawImage(img, 0, 0, w, h);
-                artDataCache[index] = canvasCtx.getImageData(0, 0, w, h).data;
-                if (++loadedCount === artList.length) initParticles();
-            };
-        });
-
-        function initParticles() {
-            const geometry = new THREE.BufferGeometry();
-            const pPositions = new Float32Array(particleCount * 3);
-            const pColors = new Float32Array(particleCount * 3);
-            const initialData = artDataCache[0];
-
-            for (let i = 0; i < particleCount; i++) {
-                const pX = i % w; const pY = Math.floor(i / w);
-                const idx = (pY * w + pX) * 4;
-
-                pPositions[i * 3] = ((pX / w) - 0.5) * 6.5;
-                pPositions[i * 3 + 1] = (-(pY / h) + 0.5) * 4.5 + 4.5;
-                pPositions[i * 3 + 2] = -1.9;
-
-                pColors[i * 3] = initialData[idx] / 255;
-                pColors[i * 3 + 1] = initialData[idx + 1] / 255;
-                pColors[i * 3 + 2] = initialData[idx + 2] / 255;
-            }
-
-            geometry.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
-            geometry.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
-
-            const canvasP = document.createElement('canvas'); canvasP.width = 16; canvasP.height = 16;
-            const g = canvasP.getContext('2d').createRadialGradient(8, 8, 0, 8, 8, 8);
-            g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-            canvasP.getContext('2d').fillStyle = g; canvasP.getContext('2d').fillRect(0,0,16,16);
-
-            const material = new THREE.PointsMaterial({
-                size: 0.045, map: new THREE.CanvasTexture(canvasP),
-                vertexColors: true, transparent: true, opacity: 0.95,
-                blending: THREE.AdditiveBlending, depthWrite: false
-            });
-
-            particleSystem = new THREE.Points(geometry, material);
-            scene.add(particleSystem);
-document.getElementById('art-title').innerText = artList[0].title;
-            document.getElementById('art-meta').innerText = artList[0].meta;
-        }
-// 5. Thuật toán rã hạt khuyết loang lổ đồng bộ 5 giây
-function triggerParticleTransition() {
-if (isTransitioning || !particleSystem) return;
-isTransitioning = true;
-const nextIndex = (currentArtIndex + 1) % artList.length;
-const nextArt = artList[nextIndex];
-const newData = artDataCache[nextIndex];
-document.getElementById('info-overlay').style.opacity = 0;
-const posAttr = particleSystem.geometry.attributes.position;
-const colorAttr = particleSystem.geometry.attributes.color;
-let indices = Array.from({length: particleCount}, (_, i) => i);
-for (let i = indices.length - 1; i > 0; i--) {
-const j = Math.floor(Math.random() * (i + 1));
-[indices[i], indices[j]] = [indices[j], indices[i]];
-}
-const totalDuration = 5000;
-indices.forEach((i, order) => {
-const delay = (order / particleCount) * 1500;
-const travelTime = totalDuration - delay;
-const pX = i % w; const pY = Math.floor(i / w);
-const nIdx = (pY * w + pX) * 4;
-let targetZ = -1.9;
-let scaleFactor = 6.5;
-if (nextArt.id === "lastsupper") {
-targetZ = -6.0; // Đẩy xa The Last Supper vào cuối sảnh tối
-scaleFactor = 11.0;
-}
-const targetX = ((pX / w) - 0.5) * scaleFactor;
-const targetY = (-(pY / h) + 0.5) * 4.5 + 4.5;
-const burstX = posAttr.array[i * 3] + (Math.random() - 0.5) * 5.5;
-const burstY = posAttr.array[i * 3 + 1] + (Math.random() - 0.5) * 5.5;
-const burstZ = posAttr.array[i * 3 + 2] + (Math.random()) * 8.5;
-new TWEEN.Tween(posAttr.array)
-.to({ [i * 3]: burstX, [i * 3 + 1]: burstY, [i * 3 + 2]: burstZ }, travelTime * 0.3)
-.easing(TWEEN.Easing.Quadratic.Out)
-.delay(delay)
-.chain(
-new TWEEN.Tween(posAttr.array)
-.to({ [i * 3]: targetX, [i * 3 + 1]: targetY, [i * 3 + 2]: targetZ }, travelTime * 0.7)
-.easing(TWEEN.Easing.Cubic.InOut)
-)
-.start();
-let brightnessDivider = (nextArt.id === "lastsupper") ? 2.5 : 1.0; // Giảm độ sáng làm tối The Last Supper
-new TWEEN.Tween(colorAttr.array)
-.to({
-[i * 3]: (newData[nIdx] / 255) / brightnessDivider,
-[i * 3 + 1]: (newData[nIdx + 1] / 255) / brightnessDivider,
-[i * 3 + 2]: (newData[nIdx + 2] / 255) / brightnessDivider
-}, travelTime)
-.delay(delay)
-.start();
-});
-setTimeout(() => {
-currentArtIndex = nextIndex;
-document.getElementById('art-title').innerText = artList[currentArtIndex].title;
-document.getElementById('art-meta').innerText = artList[currentArtIndex].meta;
-document.getElementById('info-overlay').style.opacity = 1;
-isTransitioning = false;
-}, totalDuration);
-}
-// Click chuột trái gọn gàng không kéo rê để chuyển tranh (kiểm tra khoảng cách với tranh)
-let isMouseDown = false, mouseMoveDistance = 0;
-window.addEventListener('mousedown', () => { isMouseDown = true; mouseMoveDistance = 0; });
-window.addEventListener('mousemove', () => { if (isMouseDown) mouseMoveDistance++; });
-window.addEventListener('mouseup', () => {
-isMouseDown = false;
-if (mouseMoveDistance < 5) { // Người dùng nhấp chuột chứ không phải đang kéo xoay camera
-let currentArt = artList[currentArtIndex];
-let maxClickDistance = (currentArt.id === "lastsupper") ? 14 : 9;
-// Đo cự ly camera tới tâm tranh
-if (camera.position.z < maxClickDistance) {
-triggerParticleTransition();
-} else {
-document.getElementById('art-title').innerText = "⚠️ Bạn đang đứng quá xa bức tranh!";
-document.getElementById('art-meta').innerText = "Hãy giữ phím W để tiến bộ chân lại gần bức tường treo tranh hơn.";
-}
-}
-});
-// 6. Vòng lặp chuyển động Game Loop cập nhật bước chân W, A, S, D
-const speed = 0.15;
-function animate() {
-requestAnimationFrame(animate);
-TWEEN.update();
-controls.update();
-// Tính toán hướng vector camera để di chuyển nhân vật tiến lùi theo đúng hướng đang nhìn
-const forward = new THREE.Vector3();
-camera.getWorldDirection(forward);
-forward.y = 0; forward.normalize(); // Chỉ đi trên mặt phẳng sàn
-const right = new THREE.Vector3();
-right.crossVectors(forward, camera.up).normalize().negate();
-if (keys.KeyW || keys.ArrowUp) { camera.position.addScaledVector(forward, speed); controls.target.addScaledVector(forward, speed); }
-if (keys.KeyS || keys.ArrowDown) { camera.position.addScaledVector(forward, -speed); controls.target.addScaledVector(forward, -speed); }
-if (keys.KeyA || keys.ArrowLeft) { camera.position.addScaledVector(right, -speed); controls.target.addScaledVector(right, -speed); }
-if (keys.KeyD || keys.ArrowRight) { camera.position.addScaledVector(right, speed); controls.target.addScaledVector(right, speed); }
-// Giới hạn biên bản đồ bảo tàng không cho đi lạc khỏi sảnh
-let frontWallLimit = (artList[currentArtIndex].id === "lastsupper") ? -4.5 : -0.5;
-if (camera.position.z < frontWallLimit) { camera.position.z = frontWallLimit; controls.target.z = frontWallLimit - 5; }
-if (camera.position.z > 20) { camera.position.z = 20; controls.target.z = 15; }
-if (camera.position.x < -15) { camera.position.x = -15; controls.target.x = -15; }
-if (camera.position.x > 15) { camera.position.x = 15; controls.target.x = 15; }
-if (particleSystem) {
-particleSystem.geometry.attributes.position.needsUpdate = true;
-particleSystem.geometry.attributes.color.needsUpdate = true;
-}
-renderer.render(scene, camera);
-}
-animate();
-window.addEventListener('resize', () => {
-camera.aspect = window.innerWidth / 650; camera.updateProjectionMatrix();
-renderer.setSize(window.innerWidth, 650);
-});
-
-
-
+    function resize() {
+      const width = root.clientWidth, height = root.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width,height);
+    }
+    window.addEventListener('resize',resize);
+  } catch (err) {
+    console.error(err);
+    showError(err && err.message ? err.message : String(err));
+  }
+})();
+</script>
+</body>
+</html>
 """

@@ -1,314 +1,290 @@
-// Chạy game lần đầu
-renderMuseum();
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Cấu hình trang web Streamlit hiển thị tràn viền tối đa cho game
+st.set_page_config(
+    page_title="Hành Trình Bảo Tàng 3D - 7 Kiệt Tác",
+    page_icon="🎮",
+    layout="wide"
+)
+
+st.title("🎮 Game Nhập Vai: Bảo Tàng 3D & 7 Kiệt Tác Nghệ Thuật")
+st.write("🕹️ **Cách điều khiển:** Bấm nút **BẬT NHẠC** trước để kích hoạt bài **Great Little Things**. Sử dụng **W, A, S, D (hoặc Mũi tên)** để di chuyển bước đi. **Nhấn giữ chuột trái và kéo** để xoay hướng nhìn 360 độ. Tiến lại gần tranh và **Bấm chuột trái** (không kéo) để rã hạt màu!")
+
+# Mã HTML + JavaScript dựng toàn bộ cơ chế game di chuyển tự do, hạt màu và nhạc nền
+game_walkthrough_code = """
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎨 Cuộc Phiêu Lưu Tại Bảo Tàng 7 Kiệt Tác</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a24;
-            color: #f5f6fa;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        body { margin: 0; overflow: hidden; background-color: #020204; font-family: sans-serif; }
+        canvas { width: 100vw; height: 650px; display: block; }
+        
+        /* Bảng hiển thị thông tin tác phẩm nghệ thuật */
+        #info-overlay {
+            position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
+            color: #ffffff; text-align: center; background: rgba(5, 5, 8, 0.85);
+            padding: 15px 35px; border-radius: 12px; border: 1px solid #d4af37;
+            pointer-events: none; max-width: 80%; box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+            transition: opacity 0.5s; opacity: 1;
         }
-
-        h1 {
-            color: #f1c40f;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            margin-bottom: 5px;
-        }
-
-        .subtitle {
-            color: #dcdde1;
-            margin-bottom: 25px;
-            font-style: italic;
-        }
-
-        .museum-hall {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
-            max-width: 1000px;
-            width: 100%;
-        }
-
-        .gallery-item {
-            background-color: #2f3640;
-            border: 4px solid #dcdde1;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.3s, border-color 0.3s;
-            position: relative;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-        }
-
-        .gallery-item:hover {
-            transform: translateY(-5px);
-            border-color: #f1c40f;
-        }
-
-        .art-frame {
-            height: 150px;
-            background-color: #1e222b;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 40px;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-
-        .art-title {
-            font-weight: bold;
-            font-size: 16px;
-            margin-top: 8px;
-        }
-
-        .status-badge {
-            margin-top: 10px;
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .locked { background-color: #e74c3c; color: white; }
-        .unlocked { background-color: #2ecc71; color: white; }
-
-        /* Modal hiển thị câu hỏi và thông tin */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-
-        .modal-content {
-            background-color: #2f3640;
-            padding: 30px;
-            border-radius: 12px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            border: 2px solid #f1c40f;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-        }
-
-        .quiz-option {
-            background-color: #353b48;
-            color: white;
-            border: 1px solid #718093;
-            padding: 10px 15px;
-            margin: 8px 0;
-            width: 100%;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 15px;
-            transition: 0.2s;
-        }
-
-        .quiz-option:hover {
-            background-color: #718093;
-        }
-
-        .close-btn {
-            background-color: #e74c3c;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 15px;
-            font-weight: bold;
-        }
-
-        .victory-msg {
-            margin-top: 25px;
-            padding: 15px;
-            background-color: #27ae60;
-            border-radius: 8px;
-            text-align: center;
-            max-width: 400px;
-            display: none;
-            font-size: 18px;
-            font-weight: bold;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.03); }
-            100% { transform: scale(1); }
+        h2 { margin: 0 0 5px 0; color: #d4af37; font-size: 22px; }
+        p { margin: 0; font-size: 14px; color: #ddd; }
+        
+        /* Nút bật tắt nhạc riêng biệt ở góc trên */
+        #music-btn {
+            position: absolute; top: 15px; left: 15px;
+            background: #d4af37; color: #000; border: none; padding: 10px 20px;
+            font-weight: bold; border-radius: 5px; cursor: pointer; z-index: 10;
+            box-shadow: 0 0 10px rgba(212,175,55,0.4);
         }
     </style>
+    <script src="https://cloudflare.com"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://cloudflare.com"></script>
 </head>
 <body>
 
-    <h1>🏛️ BẢO TÀNG 7 KIỆT TÁC</h1>
-    <p class="subtitle">Bấm vào từng khung tranh, trả lời câu hỏi để mở khóa khám phá tuyệt tác thế kỷ!</p>
+    <button id="music-btn" onclick="toggleMusic()">🎵 BẬT NHẠC NỀN</button>
 
-    <div class="museum-hall" id="museumHall">
-        <!-- Các bức tranh sẽ tự động render bằng Javascript ở đây -->
+    <audio id="bg-music" loop>
+        <source src="https://catbox.moe" type="audio/mpeg">
+    </audio>
+
+    <div id="info-overlay">
+        <h2 id="art-title">Đang quét tia sáng dựng tranh...</h2>
+        <p id="art-meta">Sử dụng các phím W, A, S, D để rảo bước chân tham quan sảnh bảo tàng</p>
     </div>
 
-    <div class="victory-msg" id="victoryMessage">
-        🎉 Chúc mừng nhà thám hiểm! Bạn đã giải mã thành công toàn bộ 7 kiệt tác nghệ thuật của nhân loại!
-    </div>
+    <script>
+        const audio = document.getElementById('bg-music');
+        audio.volume = 0.5;
 
-    <!-- Hộp thoại tương tác (Modal) -->
-    <div class="modal" id="artModal">
-        <div class="modal-content" id="modalContent">
-            <!-- Nội dung thay đổi động -->
-        </div>
-    </div>
-
-<script>
-    // Dữ liệu cấu trúc trò chơi cho 7 kiệt tác
-    const masterpieces = [
-        {
-            id: 1,
-            title: "Đêm đầy sao",
-            emoji: "🌌",
-            unlocked: false,
-            question: "Bức họa 'Đêm đầy sao' (The Starry Night) là tác phẩm của danh họa thiên tài nào?",
-            options: ["Claude Monet", "Vincent van Gogh", "Pablo Picasso", "Leonardo da Vinci"],
-            answer: "Vincent van Gogh",
-            info: "Chính xác! Bức tranh vẽ lại khung cảnh từ cửa sổ phòng bệnh của Van Gogh tại Pháp, thể hiện tâm hồn đầy biến động nhưng ngập tràn khát vọng của ông thông qua các nét cọ xoáy bùng nổ."
-        },
-        {
-            id: 2,
-            title: "Cô gái và chiếc bông tai ngọc trai",
-            emoji: "🧕",
-            unlocked: false,
-            question: "Bức họa này thường được ví von là gì của Bắc Âu?",
-            options: ["Mona Lisa của Bắc Âu", "Nữ thần Tự Do", "Kiệt tác bóng đêm", "Nàng thơ Hà Lan"],
-            answer: "Mona Lisa của Bắc Âu",
-            info: "Tuyệt vời! Tác phẩm của Johannes Vermeer nổi tiếng với cách xử lý ánh sáng chân thực, điểm nhấn tinh tế vào chiếc bông tai ngọc trai lấp lánh phản chiếu quyến rũ."
-        },
-        {
-            id: 3,
-            title: "Cô gái và con chồn",
-            emoji: "🦦",
-            unlocked: false,
-            question: "Ai là tác giả của bức chân dung 'Cô gái và con chồn'?",
-            options: ["Michelangelo", "Raphael", "Leonardo da Vinci", "Rembrandt"],
-            answer: "Leonardo da Vinci",
-            info: "Đúng rồi! Đây là một trong số ít những bức chân dung phụ nữ do Leonardo da Vinci vẽ, thể hiện kỹ thuật giải phẫu động vật và người vô cùng điêu luyện."
-        },
-        {
-            id: 4,
-            title: "Bữa tối cuối cùng",
-            emoji: "🍞",
-            unlocked: false,
-            question: "Bức tranh 'Bữa tối cuối cùng' (The Last Supper) được vẽ trực tiếp lên bề mặt kiến trúc nào?",
-            options: ["Trần nhà nguyện", "Bức tường tu viện", "Mặt trống đồng", "Cánh cửa nhà thờ"],
-            answer: "Bức tường tu viện",
-            info: "Chính xác! Danh họa Leonardo da Vinci đã vẽ kiệt tác này trên tường phòng ăn của tu viện Santa Maria delle Grazie ở Milan, Ý."
-        },
-        {
-            id: 5,
-            title: "Tiếng thét",
-            emoji: "😱",
-            unlocked: false,
-            question: "Bức họa 'Tiếng thét' (The Scream) phản ánh trường phái nghệ thuật nào?",
-            options: ["Trường phái Ấn tượng", "Trường phái Lập thể", "Trường phái Biểu hiện", "Trường phái Hiện thực"],
-            answer: "Trường phái Biểu hiện",
-            info: "Chuẩn luôn! Edvard Munch đã khắc họa nỗi lo âu, cô độc tột cùng của con người hiện đại thông qua bầu trời đỏ như máu và gương mặt biến dạng vì hoảng sợ."
-        },
-        {
-            id: 6,
-            title: "Adam và Eva",
-            emoji: "🍎",
-            unlocked: false,
-            question: "Albrecht Dürer nổi tiếng với bức tranh khắc 'Adam và Eva'. Ông là họa sĩ thuộc quốc gia nào?",
-            options: ["Đức", "Ý", "Tây Ban Nha", "Pháp"],
-            answer: "Đức",
-            info: "Rất tốt! Albrecht Dürer là nghệ sĩ vĩ đại của thời kỳ Phục hưng phương Bắc (Đức), đưa tỷ lệ hình thể lý tưởng vào các tác phẩm đồ họa điêu luyện."
-        },
-        {
-            id: 7,
-            title: "Mona Lisa",
-            emoji: "🖼️",
-            unlocked: false,
-            question: "Điểm đặc biệt nổi tiếng nhất khiến cả thế giới tò mò trên gương mặt của nàng Mona Lisa là gì?",
-            options: ["Đôi mắt biết khóc", "Nụ cười bí ẩn", "Không có chân mày", "Vòng cổ kim cương"],
-            answer: "Nụ cười bí ẩn",
-            info: "Hoàn toàn chính xác! Kỹ thuật làm nhòa mờ (Sfumato) của Leonardo da Vinci tạo nên hiệu ứng thị giác kỳ lạ: nụ cười của nàng dường như thay đổi tùy thuộc vào góc nhìn của bạn!"
+        function toggleMusic() {
+            if (audio.paused) {
+                audio.play();
+                document.getElementById('music-btn').innerText = "⏸️ TẠM DỪNG NHẠC";
+            } else {
+                audio.pause();
+document.getElementById('music-btn').innerText = "🎵 BẬT NHẠC NỀN";
+            }
         }
-    ];
 
-    let currentArtIndex = null;
+        // 1. Cấu hình không gian phòng sảnh bảo tàng
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020204);
+        scene.fog = new THREE.FogExp2(0x020204, 0.03);
 
-    // Hiển thị danh sách các bức tranh ra sảnh bảo tàng
-    function renderMuseum() {
-        const hall = document.getElementById("museumHall");
-        hall.innerHTML = "";
-        
-        masterpieces.forEach((art, index) => {
-            const card = document.createElement("div");
-            card.className = "gallery-item";
-            card.onclick = () => openArt(index);
-            
-            card.innerHTML = `
-                <div class="art-frame">${art.unlocked ? art.emoji : "🔒"}</div>
-                <div class="art-title">${art.title}</div>
-                <span class="status-badge ${art.unlocked ? 'unlocked' : 'locked'}">
-                    ${art.unlocked ? "Đã khám phá ✓" : "Đang bị khóa"}
-                </span>
-            `;
-            hall.appendChild(card);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / 650, 0.1, 1000);
+        // Điểm xuất phát của nhân vật
+        camera.position.set(0, 2, 14);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, 650);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        // 2. Sử dụng OrbitControls tùy biến góc nhìn kéo thả chuột mượt mà chạy tốt online
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enablePan = false; // Khóa di chuột tịnh tiến, chỉ giữ xoay đầu nhìn xung quanh
+        controls.maxPolarAngle = Math.PI / 2 - 0.02; // Không cho camera chúc xuống sàn
+        controls.minDistance = 1;
+        controls.maxDistance = 25;
+
+        // Trạng thái các phím bước đi W, A, S, D
+        let keys = { KeyW: false, KeyS: false, KeyA: false, KeyD: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+        window.addEventListener('keydown', (e) => { if (e.code in keys) keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { if (e.code in keys) keys[e.code] = false; });
+
+        // 3. Dựng cấu trúc Sàn nhà sảnh bảo tàng
+        const floorGeo = new THREE.PlaneGeometry(50, 50);
+        const floorMat = new THREE.MeshBasicMaterial({ color: 0x110906 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2; scene.add(floor);
+
+        // 4. Danh sách bộ sưu tập triển lãm 7 kiệt tác
+        const artList = [
+            { id: "starry", title: "Đêm đầy sao (The Starry Night - Biến tấu)", meta: "Vincent van Gogh | Bản phối cánh đồng hoa rực rỡ", url: "https://unsplash.com" },
+            { id: "monalisa", title: "Mona Lisa", meta: "Leonardo da Vinci | Kiệt tác thời Phục Hưng gốc", url: "https://wikimedia.org" },
+            { id: "lady", title: "Lady with an Ermine", meta: "Leonardo da Vinci | Chi tiết bảo tàng Krakow", url: "https://wikimedia.org" },
+            { id: "scream", title: "Skrik (The Scream)", meta: "Edvard Munch | Kiệt tác trường phái biểu hiện", url: "https://wikimedia.org" },
+            { id: "lastsupper", title: "The Last Supper (Bữa ăn tối cuối cùng) - Ẩn Hiện Thâm Sâu", meta: "Leonardo da Vinci | Đặt tại không gian xa nhất & mang sắc độ tối huyền bí", url: "https://wikimedia.org" },
+{ id: "pearlear", title: "Girl with a Pearl Earring (Thiếu nữ đeo hoa tai ngọc trai)", meta: "Johannes Vermeer | Kiệt tác hội họa Hà Lan thế kỷ 17", url: "https://wikimedia.org" },
+            { id: "adameve", title: "Adam and Eve (Adam và Eva)", meta: "Albrecht Dürer | Tác phẩm tranh khắc Phục Hưng năm 1507", url: "https://wikimedia.org" }
+        ];
+
+        let currentArtIndex = 0;
+        const particleCount = 55000;
+        let particleSystem;
+        let artDataCache = [];
+        let isTransitioning = false;
+        const w = 250; const h = 220;
+
+        let loadedCount = 0;
+        artList.forEach((art, index) => {
+            const img = new Image(); img.crossOrigin = "Anonymous"; img.src = art.url;
+            img.onload = function() {
+                const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+                const canvasCtx = canvas.getContext('2d'); canvasCtx.drawImage(img, 0, 0, w, h);
+                artDataCache[index] = canvasCtx.getImageData(0, 0, w, h).data;
+                if (++loadedCount === artList.length) initParticles();
+            };
         });
 
-        // Kiểm tra xem tất cả đã được mở khóa chưa
-        const allUnlocked = masterpieces.every(art => art.unlocked);
-        if (allUnlocked) {
-            document.getElementById("victoryMessage").style.display = "block";
-        }
-    }
+        function initParticles() {
+            const geometry = new THREE.BufferGeometry();
+            const pPositions = new Float32Array(particleCount * 3);
+            const pColors = new Float32Array(particleCount * 3);
+            const initialData = artDataCache[0];
 
-    // Mở hộp thoại khi click vào tranh
-    function openArt(index) {
-        currentArtIndex = index;
-        const art = masterpieces[index];
-        const modal = document.getElementById("artModal");
-const content = document.getElementById("modalContent");
-modal.style.display = "flex";
-if (art.unlocked) {
-// Nếu đã mở khóa trước đó, chỉ hiển thị thông tin kiến thức
-content.innerHTML = <h2>${art.emoji} Kiệt tác: ${art.title}</h2> <p style="text-align: left; line-height: 1.6; background: #1e222b; padding: 15px; border-radius: 8px;"> ${art.info} </p> <button class="close-btn" onclick="closeModal()">Đóng cửa sổ</button>;
-} else {
-// Nếu chưa mở khóa, hiển thị câu đố thử thách
-let optionsHTML = "";
-art.options.forEach(opt => {
-optionsHTML += <button class="quiz-option" onclick="submitAnswer('${opt}')">${opt}</button>;
+            for (let i = 0; i < particleCount; i++) {
+                const pX = i % w; const pY = Math.floor(i / w);
+                const idx = (pY * w + pX) * 4;
+
+                pPositions[i * 3] = ((pX / w) - 0.5) * 6.5;
+                pPositions[i * 3 + 1] = (-(pY / h) + 0.5) * 4.5 + 4.5;
+                pPositions[i * 3 + 2] = -1.9;
+
+                pColors[i * 3] = initialData[idx] / 255;
+                pColors[i * 3 + 1] = initialData[idx + 1] / 255;
+                pColors[i * 3 + 2] = initialData[idx + 2] / 255;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(pColors, 3));
+
+            const canvasP = document.createElement('canvas'); canvasP.width = 16; canvasP.height = 16;
+            const g = canvasP.getContext('2d').createRadialGradient(8, 8, 0, 8, 8, 8);
+            g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+            canvasP.getContext('2d').fillStyle = g; canvasP.getContext('2d').fillRect(0,0,16,16);
+
+            const material = new THREE.PointsMaterial({
+                size: 0.045, map: new THREE.CanvasTexture(canvasP),
+                vertexColors: true, transparent: true, opacity: 0.95,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+document.getElementById('art-title').innerText = artList[0].title;
+            document.getElementById('art-meta').innerText = artList[0].meta;
+        }
+// 5. Thuật toán rã hạt khuyết loang lổ đồng bộ 5 giây
+function triggerParticleTransition() {
+if (isTransitioning || !particleSystem) return;
+isTransitioning = true;
+const nextIndex = (currentArtIndex + 1) % artList.length;
+const nextArt = artList[nextIndex];
+const newData = artDataCache[nextIndex];
+document.getElementById('info-overlay').style.opacity = 0;
+const posAttr = particleSystem.geometry.attributes.position;
+const colorAttr = particleSystem.geometry.attributes.color;
+let indices = Array.from({length: particleCount}, (_, i) => i);
+for (let i = indices.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[indices[i], indices[j]] = [indices[j], indices[i]];
+}
+const totalDuration = 5000;
+indices.forEach((i, order) => {
+const delay = (order / particleCount) * 1500;
+const travelTime = totalDuration - delay;
+const pX = i % w; const pY = Math.floor(i / w);
+const nIdx = (pY * w + pX) * 4;
+let targetZ = -1.9;
+let scaleFactor = 6.5;
+if (nextArt.id === "lastsupper") {
+targetZ = -6.0; // Đẩy xa The Last Supper vào cuối sảnh tối
+scaleFactor = 11.0;
+}
+const targetX = ((pX / w) - 0.5) * scaleFactor;
+const targetY = (-(pY / h) + 0.5) * 4.5 + 4.5;
+const burstX = posAttr.array[i * 3] + (Math.random() - 0.5) * 5.5;
+const burstY = posAttr.array[i * 3 + 1] + (Math.random() - 0.5) * 5.5;
+const burstZ = posAttr.array[i * 3 + 2] + (Math.random()) * 8.5;
+new TWEEN.Tween(posAttr.array)
+.to({ [i * 3]: burstX, [i * 3 + 1]: burstY, [i * 3 + 2]: burstZ }, travelTime * 0.3)
+.easing(TWEEN.Easing.Quadratic.Out)
+.delay(delay)
+.chain(
+new TWEEN.Tween(posAttr.array)
+.to({ [i * 3]: targetX, [i * 3 + 1]: targetY, [i * 3 + 2]: targetZ }, travelTime * 0.7)
+.easing(TWEEN.Easing.Cubic.InOut)
+)
+.start();
+let brightnessDivider = (nextArt.id === "lastsupper") ? 2.5 : 1.0; // Giảm độ sáng làm tối The Last Supper
+new TWEEN.Tween(colorAttr.array)
+.to({
+[i * 3]: (newData[nIdx] / 255) / brightnessDivider,
+[i * 3 + 1]: (newData[nIdx + 1] / 255) / brightnessDivider,
+[i * 3 + 2]: (newData[nIdx + 2] / 255) / brightnessDivider
+}, travelTime)
+.delay(delay)
+.start();
 });
-content.innerHTML = <h2>🔒 Thử thách giải mã: ${art.title}</h2> <p style="font-size: 16px; margin: 15px 0; color: #f1c40f;">${art.question}</p> <div style="margin-bottom: 10px;">${optionsHTML}</div> <button class="close-btn" style="background-color:#718093;" onclick="closeModal()">Rút lui</button>;
+setTimeout(() => {
+currentArtIndex = nextIndex;
+document.getElementById('art-title').innerText = artList[currentArtIndex].title;
+document.getElementById('art-meta').innerText = artList[currentArtIndex].meta;
+document.getElementById('info-overlay').style.opacity = 1;
+isTransitioning = false;
+}, totalDuration);
 }
-}
-// Kiểm tra câu trả lời của người chơi
-function submitAnswer(selectedOption) {
-const art = masterpieces[currentArtIndex];
-const content = document.getElementById("modalContent");
-if (selectedOption === art.answer) {
-art.unlocked = true;
-renderMuseum(); // Cập nhật lại giao diện sảnh
-content.innerHTML = <h2>🎉 CHÍNH XÁC! 🎉</h2> <p style="color: #2ecc71; font-weight: bold; font-size: 18px;">Bạn đã mở khóa thành công!</p> <p style="text-align: left; line-height: 1.6; background: #1e222b; padding: 15px; border-radius: 8px;"> ${art.info} </p> <button class="close-btn" onclick="closeModal()">Tiếp tục tham quan</button>;
+// Click chuột trái gọn gàng không kéo rê để chuyển tranh (kiểm tra khoảng cách với tranh)
+let isMouseDown = false, mouseMoveDistance = 0;
+window.addEventListener('mousedown', () => { isMouseDown = true; mouseMoveDistance = 0; });
+window.addEventListener('mousemove', () => { if (isMouseDown) mouseMoveDistance++; });
+window.addEventListener('mouseup', () => {
+isMouseDown = false;
+if (mouseMoveDistance < 5) { // Người dùng nhấp chuột chứ không phải đang kéo xoay camera
+let currentArt = artList[currentArtIndex];
+let maxClickDistance = (currentArt.id === "lastsupper") ? 14 : 9;
+// Đo cự ly camera tới tâm tranh
+if (camera.position.z < maxClickDistance) {
+triggerParticleTransition();
 } else {
-content.innerHTML = <h2>❌ SAI RỒI! ❌</h2> <p style="color: #e74c3c;">Bảo vệ bảo tàng đã ngăn bạn lại. Hãy thử suy luận một cách khác xem!</p> <button class="close-btn" onclick="openArt(${currentArtIndex})">Thử lại</button> <button class="close-btn" style="background-color:#718093; margin-left: 10px;" onclick="closeModal()">Quay lại sảnh</button>;
+document.getElementById('art-title').innerText = "⚠️ Bạn đang đứng quá xa bức tranh!";
+document.getElementById('art-meta').innerText = "Hãy giữ phím W để tiến bộ chân lại gần bức tường treo tranh hơn.";
 }
 }
-function closeModal() {
-document.getElementById("artModal").style.display = "none";
+});
+// 6. Vòng lặp chuyển động Game Loop cập nhật bước chân W, A, S, D
+const speed = 0.15;
+function animate() {
+requestAnimationFrame(animate);
+TWEEN.update();
+controls.update();
+// Tính toán hướng vector camera để di chuyển nhân vật tiến lùi theo đúng hướng đang nhìn
+const forward = new THREE.Vector3();
+camera.getWorldDirection(forward);
+forward.y = 0; forward.normalize(); // Chỉ đi trên mặt phẳng sàn
+const right = new THREE.Vector3();
+right.crossVectors(forward, camera.up).normalize().negate();
+if (keys.KeyW || keys.ArrowUp) { camera.position.addScaledVector(forward, speed); controls.target.addScaledVector(forward, speed); }
+if (keys.KeyS || keys.ArrowDown) { camera.position.addScaledVector(forward, -speed); controls.target.addScaledVector(forward, -speed); }
+if (keys.KeyA || keys.ArrowLeft) { camera.position.addScaledVector(right, -speed); controls.target.addScaledVector(right, -speed); }
+if (keys.KeyD || keys.ArrowRight) { camera.position.addScaledVector(right, speed); controls.target.addScaledVector(right, speed); }
+// Giới hạn biên bản đồ bảo tàng không cho đi lạc khỏi sảnh
+let frontWallLimit = (artList[currentArtIndex].id === "lastsupper") ? -4.5 : -0.5;
+if (camera.position.z < frontWallLimit) { camera.position.z = frontWallLimit; controls.target.z = frontWallLimit - 5; }
+if (camera.position.z > 20) { camera.position.z = 20; controls.target.z = 15; }
+if (camera.position.x < -15) { camera.position.x = -15; controls.target.x = -15; }
+if (camera.position.x > 15) { camera.position.x = 15; controls.target.x = 15; }
+if (particleSystem) {
+particleSystem.geometry.attributes.position.needsUpdate = true;
+particleSystem.geometry.attributes.color.needsUpdate = true;
 }
+renderer.render(scene, camera);
+}
+animate();
+window.addEventListener('resize', () => {
+camera.aspect = window.innerWidth / 650; camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth, 650);
+});
+
+
+
+"""

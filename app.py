@@ -11,7 +11,7 @@ st.title("🟩 Game Xếp Khối Màu (Block Blast Pro)")
 st.markdown(
     "**Cách chơi:** Click chuột trái vào khối hình bên dưới để chọn, "
     "sau đó click vào một ô trên bảng 10x10 để đặt khối xuống. "
-    "Xếp kín một hàng ngang hoặc cột dọc để làm nổ khối và ghi điểm!"
+    "Xếp kín một hàng ngang hoặc cột dọc để làm nổ khối và ghi điểm! Tùy chỉnh độ khó tại màn hình Menu."
 )
 
 # TRÌNH PHÁT NHẠC NỀN CHILL: Great Little Things (Spotify Player)
@@ -123,7 +123,7 @@ game_html = r"""
     4: '#a855f7', 5: '#f59e0b', 6: '#06b6d4'
   };
 
-  // ĐÃ SỬA: Định vị dữ liệu mảng các hình khối nhị phân chuẩn 100% không lỗi lặp
+  // ĐÃ SỬA LỖI: Điền đầy đủ dữ liệu ma trận hình học cho các khối
   const shapesPool = {
     easy: [
       [[1]], 
@@ -138,9 +138,9 @@ game_html = r"""
       [[1], [1]], 
       [[1], [1], [1]], 
       [[1, 1], [1, 1]], 
-      [[1, 1, 1], [0, 1, 0]], 
-      [[1, 0, 0], [1, 1, 1]], 
-      [[1, 1, 0], [0, 1, 1]]
+      [[1, 1, 1], [0, 1, 0], [0, 0, 0]], 
+      [[1, 1, 1], [1, 0, 0], [1, 0, 0]], 
+      [[1, 1, 0], [0, 1, 1], [0, 0, 0]]
     ],
     hard: [
       [[1, 1], [1, 1]], 
@@ -239,8 +239,7 @@ game_html = r"""
       box.className = 'shape-box';
       box.id = `shape-${i}`;
       box.style.gridTemplateRows = `repeat(${matrix.length}, 1fr)`;
-      box.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
-      
+box.style.gridTemplateColumns = repeat(${matrix.length}, 1fr);
 box.addEventListener('click', (e) => {
 if (currentShapes[i].used) return;
 document.querySelectorAll('.shape-box').forEach(b => b.classList.remove('selected'));
@@ -249,7 +248,7 @@ selectedShapeIndex = i;
 e.stopPropagation();
 });
 for (let r = 0; r < matrix.length; r++) {
-for (let c = 0; c < matrix[0].length; c++) {
+for (let c = 0; c < matrix.length; c++) {
 const sCell = document.createElement('div');
 if (matrix[r][c]) {
 sCell.className = 's-cell';

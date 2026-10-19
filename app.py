@@ -2,18 +2,18 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="Hành Trình Bảo Tàng 3D - 7 Kiệt Tác",
-    page_icon="🎮",
-    layout="wide",
+    page_title="Game Xếp Khối Màu - Block Puzzle",
+    page_icon="🟩",
+    layout="centered",
 )
 
-st.title("🎮 Hành Trình Bảo Tàng 3D – 7 Kiệt Tác")
+st.title("🟩 Game Xếp Khối Màu (Style Block Blast)")
 st.markdown(
-    "Dùng **W/A/S/D** hoặc **phím mũi tên** để di chuyển, "
-    "kéo chuột trái để xoay góc nhìn. Đến gần tranh rồi nhấn chuột "
-    "để chuyển sang tác phẩm tiếp theo. Nhấn **BẬT NHẠC** để bật nhạc."
+    "**Cách chơi:** Dùng chuột click vào khối hình bên dưới, sau đó click vào vị trí trên bảng 10x10 để đặt khối vào. "
+    "Xếp **đầy một hàng ngang hoặc cột dọc** để làm nổ khối và ghi điểm! Trò chơi kết thúc khi không còn chỗ đặt."
 )
 
+# Mã nguồn HTML5/JavaScript dựng logic game xếp hình kéo thả/click phẳng
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -21,230 +21,249 @@ game_html = r"""
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#020204; color:#fff; font-family:Arial,sans-serif; }
-  #game { position:relative; width:100%; height:600px; overflow:hidden; background:#020204; }
-  canvas { display:block; width:100%; height:100%; }
-  #music-btn { position:absolute; z-index:5; top:14px; left:14px; padding:10px 16px; border:0; border-radius:6px; background:#d4af37; color:#111; font-weight:bold; cursor:pointer; }
-  #help { position:absolute; z-index:4; top:14px; right:14px; max-width:250px; padding:10px 12px; background:#08080ddd; border:1px solid #806c2c; border-radius:8px; font-size:12px; line-height:1.5; }
-  #info { position:absolute; z-index:4; left:50%; bottom:18px; transform:translateX(-50%); width:max-content; max-width:82%; box-sizing:border-box; text-align:center; padding:13px 22px; background:#050508e8; border:1px solid #d4af37; border-radius:10px; pointer-events:none; }
-  #title { color:#e5c65b; font-size:20px; font-weight:bold; margin-bottom:5px; }
-  #meta { color:#eee; font-size:13px; }
-  #error { display:none; position:absolute; z-index:8; inset:65px 12px auto; padding:12px; background:#581b1b; border:1px solid #ff7777; border-radius:8px; }
-  @media(max-width:600px) { #game { height:500px; } #help { top:64px; left:12px; right:auto; } #info { max-width:94%; padding:10px 12px; } #title {font-size:16px;} }
+  body { margin: 0; background: #0f172a; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; }
+  #container { max-width: 500px; margin: 10px auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+  #score-board { font-size: 24px; font-weight: bold; margin-bottom: 15px; color: #f59e0b; display: flex; justify-content: space-around; }
+  #grid { display: grid; grid-template-columns: repeat(10, 1fr); grid-gap: 4px; background: #334155; padding: 6px; border-radius: 8px; margin-bottom: 20px; }
+  .cell { aspect-ratio: 1; background: #475569; border-radius: 4px; transition: background 0.15s; cursor: pointer; }
+  .cell.filled { box-shadow: inset 0 0 6px rgba(0,0,0,0.3); }
+  #shapes-container { display: flex; justify-content: space-around; min-height: 90px; background: #334155; padding: 10px; border-radius: 8px; }
+  .shape-box { display: grid; grid-gap: 2px; padding: 5px; border-radius: 6px; cursor: pointer; background: rgba(255,255,255,0.05); transition: transform 0.2s, background 0.2s; }
+  .shape-box:hover { background: rgba(255,255,255,0.15); transform: scale(1.05); }
+  .shape-box.selected { background: #f59e0b !important; transform: scale(1.08); box-shadow: 0 0 12px #f59e0b; }
+  .s-cell { width: 16px; height: 16px; border-radius: 2px; }
+  .empty-s-cell { width: 16px; height: 16px; }
+  #game-over { display: none; margin-top: 15px; font-size: 28px; font-weight: bold; color: #ef4444; animation: pulse 1s infinite; }
+  #reset-btn { margin-top: 10px; padding: 10px 24px; font-size: 16px; font-weight: bold; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  #reset-btn:hover { background: #059669; }
+  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
 </style>
-<script src="https://jsdelivr.net"></script>
-<script src="https://jsdelivr.net"></script>
-<script src="https://jsdelivr.net"></script>
 </head>
 <body>
-<div id="game">
-  <button id="music-btn" type="button">🎵 BẬT NHẠC NỀN</button>
-  <div id="help">W/A/S/D hoặc phím mũi tên: di chuyển<br>Kéo chuột: xoay góc nhìn<br>Đến gần tranh rồi nhấp chuột: chuyển tranh</div>
-  <div id="error"></div>
-  <div id="info"><div id="title">Đang dựng bảo tàng 3D…</div><div id="meta">Đang khởi tạo không gian triển lãm</div></div>
+
+<div id="container">
+  <div id="score-board">
+    <div>Điểm: <span id="score">0</span></div>
+    <div>Kỷ lục: <span id="high-score">0</span></div>
+  </div>
+  
+  <div id="grid"></div>
+  
+  <div id="shapes-container"></div>
+  
+  <div id="game-over">TRÒ CHƠI KẾT THÚC!</div>
+  <button id="reset-btn">Chơi Lại 🔄</button>
 </div>
+
 <script>
 (() => {
-  const root = document.getElementById('game');
-  const errorBox = document.getElementById('error');
-  const titleUI = document.getElementById('title');
-  const metaUI = document.getElementById('meta');
-  const musicBtn = document.getElementById('music-btn');
+  const BOARD_SIZE = 10;
+  let board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+  let score = 0;
+  let highScore = localStorage.getItem('block_puzzle_high') || 0;
+  let currentShapes = [];
+  let selectedShapeIndex = null;
 
-  function showError(message) {
-    errorBox.style.display = 'block';
-    errorBox.textContent = 'Không thể khởi tạo game: ' + message;
-  }
+  // Bảng màu sắc rực rỡ phong cách Block Blast
+  const colors = {
+    1: '#ef4444', // Đỏ
+    2: '#3b82f6', // Xanh dương
+    3: '#10b981', // Xanh lá
+    4: '#a855f7', // Tím
+    5: '#f59e0b', // Cam vàng
+    6: '#06b6d4'  // Xanh ngọc
+  };
 
-  if (!window.THREE || !THREE.OrbitControls || !window.TWEEN) {
-    showError('Không tải được thư viện 3D từ CDN.');
-    return;
-  }
-
-  const artList = [
-    {title:'Đêm đầy sao', meta:'Vincent van Gogh · Trường phái Ấn tượng', color:0x1b2f56, accent:0xf3cb46},
-    {title:'Mona Lisa', meta:'Leonardo da Vinci · Thời kỳ Phục Hưng', color:0x393e2b, accent:0xa68a56},
-    {title:'Lady with an Ermine', meta:'Leonardo da Vinci · Chân dung Phục Hưng', color:0x4d3327, accent:0xcbb082},
-    {title:'The Scream', meta:'Edvard Munch · Trường phái Biểu hiện', color:0x7e3517, accent:0xdf9836},
-    {title:'The Last Supper', meta:'Leonardo da Vinci · Bữa ăn tối cuối cùng', color:0x3c3025, accent:0xbd9a2b},
-    {title:'Girl with a Pearl Earring', meta:'Johannes Vermeer · Hội họa Hà Lan', color:0x163549, accent:0xcaa36d},
-    {title:'Adam and Eve', meta:'Albrecht Dürer · Nghệ thuật Phục Hưng', color:0x3f492b, accent:0xaa986b}
+  // Định nghĩa kho thư viện các khối hình học
+  const rawShapes = [
+    [[1]], // Khối đơn 1x1
+    [[1, 1]], // Khối ngang 1x2
+    [[1, 1, 1]], // Khối ngang 1x3
+    [[1], [1]], // Khối dọc 2x1
+    [[1], [1], [1]], // Khối dọc 3x1
+    [[1, 1], [1, 1]], // Khối vuông 2x2
+    [[1, 1, 1], [0, 1, 0]], // Khối chữ T
+    [[1, 0], [1, 0], [1, 1]], // Khối chữ L
+    [[0, 1], [0, 1], [1, 1]], // Khối chữ L ngược
+    [[1, 1, 0], [0, 1, 1]]  // Khối chữ Z
   ];
 
-  let scene, camera, renderer, controls, currentIndex = 0, transitioning = false;
-  let artworkGroup;
-  const keys = Object.create(null);
-  const speed = 0.12;
+  document.getElementById('high-score').textContent = highScore;
+  const gridDOM = document.getElementById('grid');
+  const shapesContainerDOM = document.getElementById('shapes-container');
+  const gameOverDOM = document.getElementById('game-over');
 
-  let audioCtx = null, oscillator = null, gainNode = null, musicPlaying = false;
-  musicBtn.addEventListener('click', () => {
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      gainNode = audioCtx.createGain();
-      gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
-      gainNode.connect(audioCtx.destination);
-    }
-    if (!musicPlaying) {
-      oscillator = audioCtx.createOscillator();
-      oscillator.type = 'triangle';
-      oscillator.frequency.setValueAtTime(293.66, audioCtx.currentTime); // Âm giai Re dịu nhẹ
-      oscillator.connect(gainNode);
-      oscillator.start();
-      musicPlaying = true;
-      musicBtn.textContent = "⏸ TẮT NHẠC NỀN";
-    } else {
-      oscillator.stop();
-      musicPlaying = false;
-      musicBtn.textContent = "🎵 BẬT NHẠC NỀN";
-    }
-  });
-
-  try {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x06060a);
-    scene.fog = new THREE.Fog(0x06060a, 15, 40);
-
-    camera = new THREE.PerspectiveCamera(60, root.clientWidth / root.clientHeight, 0.1, 100);
-    camera.position.set(0, 2.2, 9);
-
-    renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    renderer.setSize(root.clientWidth, root.clientHeight);
-    root.appendChild(renderer.domElement);
-
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.enablePan = false;
-    controls.minDistance = 2;
-    controls.maxDistance = 14;
-    controls.maxPolarAngle = Math.PI * 0.48;
-    controls.target.set(0, 2.2, 0);
-
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x24170f, 1.1));
-    const mainLight = new THREE.PointLight(0xffe0b3, 1.5, 30);
-    mainLight.position.set(0, 6, 2);
-    scene.add(mainLight);
-
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 40),
-      new THREE.MeshStandardMaterial({color:0x221a14, roughness:0.9})
-    );
-    floor.rotation.x = -Math.PI / 2;
-    scene.add(floor);
-
-    const wallMat = new THREE.MeshStandardMaterial({color:0x121215, roughness:0.95});
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(36, 10, 0.5), wallMat);
-    backWall.position.set(0, 5, -10);
-    scene.add(backWall);
-
-    artworkGroup = new THREE.Group();
-    scene.add(artworkGroup);
-
-    function makeArtwork(index) {
-      while (artworkGroup.children.length) {
-        const child = artworkGroup.children.pop();
-        if (child.geometry) child.geometry.dispose();
-        if (child.material) child.material.dispose();
+  // 1. Tạo ma trận bảng chơi ảo
+  function initBoard() {
+    gridDOM.innerHTML = '';
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+        cell.addEventListener('click', () => handleCellClick(r, c));
+        gridDOM.appendChild(cell);
       }
-      const art = artList[index];
-      titleUI.textContent = art.title;
-      metaUI.textContent = art.meta;
+    }
+  }
 
-      const frame = new THREE.Mesh(
-        new THREE.BoxGeometry(5.4, 3.9, 0.2),
-        new THREE.MeshStandardMaterial({color:0xd4af37, metalness:0.7, roughness:0.3})
-      );
-      frame.position.set(0, 4.0, -9.7);
-      artworkGroup.add(frame);
+  // 2. Tạo ngẫu nhiên 3 khối hình mới cho lượt lựa chọn
+  function spawnShapes() {
+    shapesContainerDOM.innerHTML = '';
+    currentShapes = [];
+    selectedShapeIndex = null;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = 512; canvas.height = 384;
-      const ctx = canvas.getContext('2d');
-      const grad = ctx.createLinearGradient(0,0,512,384);
-      grad.addColorStop(0, '#' + art.color.toString(16).padStart(6,'0'));
-      grad.addColorStop(1, '#' + art.accent.toString(16).padStart(6,'0'));
-      ctx.fillStyle = grad; ctx.fillRect(0,0,512,384);
+    for (let i = 0; i < 3; i++) {
+      const randType = Math.floor(Math.random() * rawShapes.length);
+      const randColor = Math.floor(Math.random() * 6) + 1;
+      const matrix = rawShapes[randType];
+
+      currentShapes.push({ matrix, color: randColor, used: false });
+
+      const box = document.createElement('div');
+      box.className = 'shape-box';
+      box.id = `shape-${i}`;
+      box.style.gridTemplateRows = `repeat(${matrix.length}, 1fr)`;
+      box.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
       
-      ctx.globalAlpha = 0.35;
-      for(let i=0; i<50; i++){
-        ctx.fillStyle = i%2 ? '#fff' : '#000';
-        ctx.beginPath();
-        ctx.arc((i*43+index*79)%512, (i*29+index*61)%384, (i%10)+4, 0, Math.PI*2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1.0;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(art.title, 256, 192);
+      box.addEventListener('click', (e) => {
+        if (currentShapes[i].used) return;
+        document.querySelectorAll('.shape-box').forEach(b => b.classList.remove('selected'));
+        box.classList.add('selected');
+        selectedShapeIndex = i;
+        e.stopPropagation();
+      });
 
-      const texture = new THREE.CanvasTexture(canvas);
-      const picture = new THREE.Mesh(
-        new THREE.PlaneGeometry(5.1, 3.6),
-        new THREE.MeshBasicMaterial({map: texture})
-      );
-      picture.position.set(0, 4.0, -9.58);
-      artworkGroup.add(picture);
+      for (let r = 0; r < matrix.length; r++) {
+        for (let c = 0; c < matrix[0].length; c++) {
+          const sCell = document.createElement('div');
+          if (matrix[r][c]) {
+            sCell.className = 's-cell';
+            sCell.style.background = colors[randColor];
+          } else {
+            sCell.className = 'empty-s-cell';
+          }
+          box.appendChild(sCell);
+        }
+      }
+      shapesContainerDOM.appendChild(box);
+    }
+  }
+
+  // Cập nhật giao diện màu sắc của bảng 10x10 dựa trên dữ liệu mảng
+  function renderBoard() {
+    const cells = gridDOM.children;
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      for (let c = 0; c < BOARD_SIZE; c++) {
+        const idx = r * BOARD_SIZE + c;
+        const val = board[r][c];
+        if (val > 0) {
+          cells[idx].style.background = colors[val];
+          cells[idx].classList.add('filled');
+        } else {
+          cells[idx].style.background = '#475569';
+          cells[idx].classList.remove('filled');
+        }
+      }
+    }
+  }
+
+  // Kiểm tra khối hình có vừa khít để đặt xuống vị trí (startR, startC) không
+  function canPlace(matrix, startR, startC) {
+    if (startR + matrix.length > BOARD_SIZE || startC + matrix[0].length > BOARD_SIZE) return false;
+    for (let r = 0; r < matrix.length; r++) {
+      for (let c = 0; c < matrix[0].length; c++) {
+        if (matrix[r][c] && board[startR + r][startC + c] > 0) return false;
+      }
+    }
+    return true;
+  }
+
+  // 3. Xử lý đặt khối hình khi người dùng bấm chọn một ô trên bảng
+  function handleCellClick(startR, startC) {
+    if (selectedShapeIndex === null) return;
+    const shape = currentShapes[selectedShapeIndex];
+
+    if (canPlace(shape.matrix, startR, startC)) {
+      // Ghi dữ liệu khối vào mảng board
+      for (let r = 0; r < shape.matrix.length; r++) {
+        for (let c = 0; c < shape.matrix[0].length; c++) {
+          if (shape.matrix[r][c]) {
+            board[startR + r][startC + c] = shape.color;
+          }
+        }
+      }
+
+      // Đánh dấu khối này đã được sử dụng
+      shape.used = true;
+      document.getElementById(`shape-${selectedShapeIndex}`).style.opacity = '0.2';
+      document.getElementById(`shape-${selectedShapeIndex}`).classList.remove('selected');
+      selectedShapeIndex = null;
+
+      // Cộng điểm khi đặt thành công khối hình
+      score += 10;
+      
+      checkCombos();
+      renderBoard();
+
+      // Nếu cả 3 khối đều dùng hết, tự động hồi cấp 3 khối mới
+      if (currentShapes.every(s => shape.used || s.used)) {
+        spawnShapes();
+      }
+
+      // Kiểm tra xem người chơi còn đường đi nào hợp lệ không
+      if (checkGameOver()) {
+        gameOverDOM.style.display = 'block';
+      }
+    }
+  }
+
+  // 4. Quét kiểm tra combo làm nổ hàng ngang / cột dọc đầy đủ màu
+  function checkCombos() {
+    let rowsToClear = [];
+    let colsToClear = [];
+
+    // Kiểm tra hàng ngang
+    for (let r = 0; r < BOARD_SIZE; r++) {
+      if (board[r].every(val => val > 0)) rowsToClear.push(r);
+    }
+    // Kiểm tra cột dọc
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      let full = true;
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        if (board[r][c] === 0) { full = false; break; }
+      }
+      if (full) colsToClear.push(c);
     }
 
-    makeArtwork(currentIndex);
+    // Làm nổ các khối và tính điểm combo thưởng lớn
+    const totalLines = rowsToClear.length + colsToClear.length;
+    if (totalLines > 0) {
+      rowsToClear.forEach(r => board[r].fill(0));
+      colsToClear.forEach(c => {
+        for (let r = 0; r < BOARD_SIZE; r++) board[r][c] = 0;
+      });
 
-    window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-    window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
-
-    window.addEventListener('click', (e) => {
-      if (e.target.id === 'music-btn' || transitioning) return;
-      const dist = camera.position.distanceTo(new THREE.Vector3(0, 2.2, -9.5));
-      if (dist < 6.0) {
-        transitioning = true;
-        currentIndex = (currentIndex + 1) % artList.length;
-        new TWEEN.Tween(camera.position)
-          .to({z: 8, x: 0}, 750)
-          .easing(TWEEN.Easing.Quadratic.Out)
-          .onComplete(() => {
-            makeArtwork(currentIndex);
-            transitioning = false;
-          })
-          .start();
+      score += totalLines * 100; // 100 điểm cho mỗi hàng biến mất
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('block_puzzle_high', highScore);
+        document.getElementById('high-score').textContent = highScore;
       }
-    });
-
-    function animate() {
-      requestAnimationFrame(animate);
-      TWEEN.update();
-
-      const forward = new THREE.Vector3();
-      camera.getWorldDirection(forward);
-      forward.y = 0;
-      forward.normalize();
-
-      const side = new THREE.Vector3();
-      side.crossVectors(camera.up, forward).normalize();
-
-      if (keys['w'] || keys['arrowup']) camera.position.addScaledVector(forward, speed);
-      if (keys['s'] || keys['arrowdown']) camera.position.addScaledVector(forward, -speed);
-      if (keys['a'] || keys['arrowleft']) camera.position.addScaledVector(side, speed);
-      if (keys['d'] || keys['arrowright']) camera.position.addScaledVector(side, -speed);
-
-      camera.position.x = Math.max(-12, Math.min(12, camera.position.x));
-      camera.position.z = Math.max(-7, Math.min(12, camera.position.z));
-
-      controls.update();
-      renderer.render(scene, camera);
     }
-requestAnimationFrame(animate);
-window.addEventListener('resize', () => {
-camera.aspect = root.clientWidth / root.clientHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(root.clientWidth, root.clientHeight);
-});
-} catch (err) {
-showError(err.message);
-}
-})();
+    document.getElementById('score').textContent = score;
+  }
 
+  // 5. Thuật toán kiểm tra điều kiện thua cuộc
+  function checkGameOver() {
+    // Duyệt qua tất cả các khối hình còn tồn tại chưa dùng
+    for (let i = 0; i < currentShapes.length; i++) {
+      const shape = currentShapes[i];
+      if (shape.used) continue;
 
-
-"""
-components.html(game_html, height=620, scrolling=False)
+      // Tìm xem có bất kỳ vị trí trống nào trên bảng nhét vừa khối không
+      for (let r = 0; r < BOARD_SIZE; r++) {
+        for (let c = 0; c < BOARD_SIZE; c++) {
+          if (canPlace(shape.matrix, r, c)) {
+            return false; // Còn đi tiếp được

@@ -10,18 +10,18 @@ st.set_page_config(
 st.title("🟩 Game Xếp Khối Màu (Block Blast Pro)")
 st.markdown(
     "**Cách chơi:** Giữ chuột trái vào khối hình bên dưới, **kéo rê khối hình** và thả vào vị trí trống trên bảng 10x10. "
-    "Xếp kín hàng hoặc cột để kích nổ ghi điểm! Chọn độ khó ở menu mở đầu."
+    "Xếp kín hàng hoặc cột để kích nổ ghi điểm! Tùy chỉnh nhạc nền bên trong Menu Cấu Hình."
 )
 
-# KHUNG NHẠC NỀN CHILL TREND: Great Little Things
-st.markdown("### 🎵 Nhạc nền: Great Little Things (Lofi Chill)")
+# KHUNG NHẠC NỀN CHILL TREND: Great Little Things từ Spotify (Đặt cố định bên ngoài hỗ trợ nghe liên tục)
+st.markdown("### 🎵 Nhạc nền phát kèm: Great Little Things")
 components.iframe(
     src="https://spotify.com",
     height=80,
     scrolling=False
 )
 
-# MÃ NGUỒN GAME CSS/HTML5 VÁ LỖI LOGIC ĐỒ HỌA
+# MÃ NGUỒN GAME CSS/HTML5 TÍCH HỢP HỆ THỐNG ÂM THANH VÀO MENU CÀI ĐẶT
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -32,15 +32,20 @@ game_html = r"""
   body { margin: 0; background: #0f172a; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; user-select: none; -webkit-user-select: none; }
   #container { max-width: 450px; margin: 10px auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; min-height: 520px; }
   
-  /* Màn hình khởi đầu */
+  /* Màn hình khởi đầu kiêm Menu Cài Đặt (Cấu Hình) */
   #start-screen { position: absolute; inset: 0; background: #1e293b; border-radius: 16px; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #start-title { font-size: 28px; font-weight: bold; color: #f59e0b; margin-bottom: 25px; }
-  .menu-label { font-size: 16px; margin-bottom: 8px; color: #94a3b8; }
-  #difficulty-select { padding: 8px 16px; font-size: 16px; font-weight: bold; border-radius: 6px; border: 2px solid #475569; background: #334155; color: white; cursor: pointer; margin-bottom: 30px; outline: none; }
-  #start-btn { padding: 12px 36px; font-size: 18px; font-weight: bold; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
+  .menu-section { width: 80%; margin-bottom: 20px; text-align: left; }
+  .menu-label { font-size: 14px; margin-bottom: 6px; color: #94a3b8; font-weight: bold; }
+  
+  select, button.setting-toggle { width: 100%; padding: 10px 14px; font-size: 15px; font-weight: bold; border-radius: 6px; border: 2px solid #475569; background: #334155; color: white; cursor: pointer; outline: none; box-sizing: border-box; }
+  button.setting-toggle { background: #1e293b; border-color: #f59e0b; color: #f59e0b; }
+  button.setting-toggle.active { background: #d4af37; color: #111; border-color: #d4af37; }
+  
+  #start-btn { width: 80%; padding: 12px 0; font-size: 18px; font-weight: bold; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,0.4); margin-top: 15px; }
   #start-btn:hover { background: #2563eb; }
   
-  /* Khu vực bảng chính */
+  /* Khu vực bảng chơi chính */
   #game-area { display: none; }
   #score-board { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #f59e0b; display: flex; justify-content: space-around; }
   #diff-indicator { font-size: 14px; background: #334155; padding: 2px 10px; border-radius: 12px; color: #cbd5e1; }
@@ -57,22 +62,33 @@ game_html = r"""
   
   #game-over { display: none; margin-top: 15px; font-size: 26px; font-weight: bold; color: #ef4444; }
   #reset-btn { margin-top: 15px; padding: 10px 24px; font-size: 15px; font-weight: bold; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 8px; }
-  #quit-btn { margin-top: 15px; padding: 10px 24px; font-size: 15px; font-weight: bold; background: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer; }
+  #config-btn { margin-top: 15px; padding: 10px 24px; font-size: 15px; font-weight: bold; background: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer; }
 </style>
 </head>
 <body>
 
 <div id="container">
-  <!-- MÀN HÌNH KHỞI ĐẦU -->
+  <!-- MÀN HÌNH MỞ ĐẦU KIM MENU CÀI ĐẶT -->
   <div id="start-screen">
-    <div id="start-title">🧱 BLOCK BLAST PUZZLE</div>
-    <div class="menu-label">CHỌN CẤP ĐỘ THỬ THÁCH:</div>
-    <select id="difficulty-select">
-      <option value="easy">DỄ (Khối Nhỏ Thư Giãn)</option>
-      <option value="medium" selected>VỪA (Cân Bằng Chuẩn Gốc)</option>
-      <option value="hard">KHÓ (Siêu Khối Thách Thức)</option>
-    </select>
-    <button id="start-btn" type="button">BẮT ĐẦU CHƠI 🎮</button>
+    <div id="start-title">🧱 BLOCK PUZZLE PRO</div>
+    
+    <!-- Mục 1: Chọn độ khó -->
+    <div class="menu-section">
+      <div class="menu-label">⚙️ CẤP ĐỘ THỬ THÁCH:</div>
+      <select id="difficulty-select">
+        <option value="easy">DỄ (Khối Nhỏ Thư Giãn)</option>
+        <option value="medium" selected>VỪA (Cân Bằng Chuẩn Gốc)</option>
+        <option value="hard">KHÓ (Siêu Khối Thách Thức)</option>
+      </select>
+    </div>
+
+    <!-- Mục 2: Cài đặt Âm thanh nổ khối (Mới chuyển vào đây) -->
+    <div class="menu-section">
+      <div class="menu-label">🔊 HIỆU ỨNG ÂM THANH (SFX):</div>
+      <button id="sfx-toggle" class="setting-toggle active" type="button">MỞ ÂM THANH ĐẬP KHỐI</button>
+    </div>
+
+    <button id="start-btn" type="button">ÁP DỤNG & VÀO CHƠI 🎮</button>
   </div>
 
   <!-- BÀN CỜ CHƠI GAME CHÍNH -->
@@ -87,7 +103,7 @@ game_html = r"""
     
     <div id="game-over">TRÒ CHƠI KẾT THÚC!</div>
     <button id="reset-btn">Chơi Lại 🔄</button>
-    <button id="quit-btn">Menu Cấu Hình 🏠</button>
+    <button id="config-btn">Menu Cấu Hình 🏠</button>
   </div>
 </div>
 
@@ -98,21 +114,22 @@ game_html = r"""
   let score = 0;
   let highScore = localStorage.getItem('block_puzzle_high') || 0;
   let currentShapes = [];
-  let selectedShapeIndex = null;
+  let dragIdx = null;
   let currentDifficulty = 'medium';
+  let isGameInitialized = false; // Biến kiểm tra xem ván đấu đã chạy chưa
+  let sfxEnabled = true; // Trạng thái âm thanh mặc định bật
 
   const colors = {
     1: '#ef4444', 2: '#3b82f6', 3: '#10b981', 
     4: '#a855f7', 5: '#f59e0b', 6: '#06b6d4'
   };
 
-  // ĐÃ KHẮC PHỤC: Định nghĩa đầy đủ dữ liệu ma trận nhị phân để tránh lỗi biên trình duyệt
   const shapesPool = {
     easy: [
-      [[1]], // Khối đơn 1x1
-      [[1, 1]], // Khối ngang 1x2
-      [[1], [1]], // Khối dọc 2x1
-      [[1, 1], [1, 0]] // Góc L nhỏ 2x2
+      [[1]], 
+      [[1, 1]], 
+      [[1], [1]], 
+      [[1, 1], [1, 0]]
     ],
     medium: [
       [[1]], 
@@ -120,18 +137,18 @@ game_html = r"""
       [[1, 1, 1]], 
       [[1], [1]], 
       [[1], [1], [1]], 
-      [[1, 1], [1, 1]], // Vuông 2x2
-      [[1, 1, 1], [0, 1, 0]], // Chữ T
-      [[1, 1], [1, 0], [1, 0]], // Chữ L
-      [[1, 1, 0], [0, 1, 1]]  // Khối chữ Z
+      [[1, 1], [1, 1]], 
+      [[1, 1, 1], [0, 1, 0], [0, 1, 0]], 
+      [[1, 0, 0], [1, 0, 0], [1, 1, 1]], 
+      [[1, 1, 0], [0, 1, 1], [0, 0, 0]]
     ],
     hard: [
       [[1, 1], [1, 1]], 
       [[1, 1, 1], [1, 1, 1], [1, 1, 1]], // Siêu khối vuông bự 3x3
-      [[1, 1, 1, 1]], // Thanh ngang dài 1x4
-      [[1], [1], [1], [1]], // Thanh dọc dài 4x1
-      [[1, 1, 1], [1, 0, 0], [1, 0, 0]], // Chữ L khổng lồ
-      [[1, 1, 1], [0, 1, 0], [0, 1, 0]] // Chữ T cỡ đại
+      [[1, 1, 1, 1]], 
+      [[1], [1], [1], [1]], 
+      [[1, 1, 1], [1, 0, 0], [1, 0, 0]], 
+      [[1, 1, 1], [0, 0, 1], [0, 0, 1]]
     ]
   };
 
@@ -142,9 +159,12 @@ game_html = r"""
   const startScreen = document.getElementById('start-screen');
   const gameArea = document.getElementById('game-area');
   const diffIndicator = document.getElementById('diff-indicator');
+  const sfxToggle = document.getElementById('sfx-toggle');
+  const startBtn = document.getElementById('start-btn');
 
   let audioCtx = null;
   function playBlastSound() {
+    if (!sfxEnabled) return; // Nếu tắt SFX trong cài đặt thì không phát âm thanh
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       let osc = audioCtx.createOscillator();
@@ -159,19 +179,39 @@ game_html = r"""
     } catch(e){}
   }
 
-  // KHỞI CHẠY GAME KHI CLICK NÚT BẮT ĐẦU
-  document.getElementById('start-btn').addEventListener('click', () => {
+  // Bật/tắt trạng thái hiệu ứng âm thanh nổ khối trong Menu Cài đặt
+  sfxToggle.addEventListener('click', () => {
+    sfxEnabled = !sfxEnabled;
+    if (sfxEnabled) {
+      sfxToggle.textContent = "MỞ ÂM THANH ĐẬP KHỐI";
+      sfxToggle.classList.add('active');
+    } else {
+      sfxToggle.textContent = "TẮT ÂM THANH ĐẬP KHỐI";
+      sfxToggle.classList.remove('active');
+    }
+  });
+
+  // CLICK NÚT ÁP DỤNG & VÀO CHƠI
+  startBtn.addEventListener('click', () => {
+    const oldDiff = currentDifficulty;
     currentDifficulty = document.getElementById('difficulty-select').value;
     diffIndicator.textContent = currentDifficulty === 'easy' ? 'Dễ' : currentDifficulty === 'hard' ? 'Khó' : 'Vừa';
+    
     startScreen.style.display = 'none';
     gameArea.style.display = 'block';
     
-    // Đánh thức bộ phát âm thanh của trình duyệt (Browser Audio Unlock)
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    restartGame();
+    
+    // Nếu chưa khởi tạo game lần nào, hoặc người chơi đổi độ khó mới -> Mới reset bàn cờ
+    if (!isGameInitialized || oldDiff !== currentDifficulty) {
+      restartGame();
+      isGameInitialized = true;
+    }
+    startBtn.textContent = "QUAY LẠI VÁN CHƠI 🎮"; // Đổi tên nút để phù hợp khi mở lại giữa trận
   });
 
-  document.getElementById('quit-btn').addEventListener('click', () => {
+  // Bấm vào nút Cấu hình giữa trận để mở bảng cài đặt mà không mất tiến trình
+  document.getElementById('config-btn').addEventListener('click', () => {
     gameArea.style.display = 'none';
     startScreen.style.display = 'flex';
   });
@@ -185,56 +225,48 @@ game_html = r"""
         cell.dataset.r = r;
         cell.dataset.c = c;
         gridDOM.appendChild(cell);
-      }
-    }
-  }
-
-  function createDraggableShape(shapeData, index) {
-    const matrix = shapeData.matrix;
-    const box = document.createElement('div');
-    box.className = 'shape-box';
-    box.id = `shape-${index}`;
-    box.style.gridTemplateRows = `repeat(${matrix.length}, 1fr)`;
-    box.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
-
-    for (let r = 0; r < matrix.length; r++) {
-      for (let c = 0; c < matrix[0].length; c++) {
-        const sCell = document.createElement('div');
-        if (matrix[r][c]) {
-          sCell.className = 's-cell';
-          sCell.style.background = colors[shapeData.color];
-        } else {
-          sCell.className = 'empty-s-cell';
-        }
-        box.appendChild(sCell);
-      }
-    }
-
-    box.addEventListener('mousedown', (e) => startDrag(e, index));
-    box.addEventListener('touchstart', (e) => startDrag(e, index), {passive: false});
-    return box;
-  }
-
-  let dragDOM = null, dragIdx = null;
-  let startX = 0, startY = 0;
-
-  function startDrag(e, index) {
-    if (currentShapes[index].used) return;
-    e.preventDefault();
-    dragIdx = index;
-    dragDOM = document.getElementById(`shape-${index}`);
-    
-    const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
-
-    const rect = dragDOM.getBoundingClientRect();
-    startX = clientX - rect.left;
-    startY = clientY - rect.top;
-
-    dragDOM.style.position = 'fixed';
-    dragDOM.style.width = `${rect.width}px`;
-    dragDOM.style.height = `${rect.height}px`;
-    dragDOM.style.zIndex = '100';
+}
+}
+}
+function createDraggableShape(shapeData, index) {
+const matrix = shapeData.matrix;
+const box = document.createElement('div');
+box.className = 'shape-box';
+box.id = shape-${index};
+box.style.gridTemplateRows = repeat(${matrix.length}, 1fr);
+box.style.gridTemplateColumns = repeat(${matrix.length}, 1fr);
+for (let r = 0; r < matrix.length; r++) {
+for (let c = 0; c < matrix.length; c++) {
+const sCell = document.createElement('div');
+if (matrix[r][c]) {
+sCell.className = 's-cell';
+sCell.style.background = colors[shapeData.color];
+} else {
+sCell.className = 'empty-s-cell';
+}
+box.appendChild(sCell);
+}
+}
+box.addEventListener('mousedown', (e) => startDrag(e, index));
+box.addEventListener('touchstart', (e) => startDrag(e, index), {passive: false});
+return box;
+}
+let dragDOM = null;
+let startX = 0, startY = 0;
+function startDrag(e, index) {
+if (currentShapes[index].used) return;
+e.preventDefault();
+dragIdx = index;
+dragDOM = document.getElementById(shape-${index});
+const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+const rect = dragDOM.getBoundingClientRect();
+startX = clientX - rect.left;
+startY = clientY - rect.top;
+dragDOM.style.position = 'fixed';
+dragDOM.style.width = ${rect.width}px;
+dragDOM.style.height = ${rect.height}px;
+dragDOM.style.zIndex = '100';
 updateDragPosition(clientX, clientY);
 window.addEventListener('mousemove', onMouseMove);
 window.addEventListener('mouseup', onMouseUp);
@@ -265,7 +297,7 @@ function showPlacementPreview(matrix, startR, startC) {
 if (!canPlace(matrix, startR, startC)) return;
 const cells = gridDOM.children;
 for (let r = 0; r < matrix.length; r++) {
-for (let c = 0; c < matrix[0].length; c++) {
+for (let c = 0; c < matrix.length; c++) {
 if (matrix[r][c]) {
 const idx = (startR + r) * BOARD_SIZE + (startC + c);
 if (cells[idx]) cells[idx].classList.add('hovered');
@@ -282,7 +314,6 @@ window.removeEventListener('mouseup', onMouseUp);
 window.removeEventListener('touchmove', onTouchMove);
 window.removeEventListener('touchend', onMouseUp);
 if (!dragDOM) return;
-// Lấy tọa độ điểm buông chuột cuối cùng để tính ô thả
 const clientX = e.type.startsWith('touch') ? (e.changedTouches[0]?.clientX || 0) : e.clientX;
 const clientY = e.type.startsWith('touch') ? (e.changedTouches[0]?.clientY || 0) : e.clientY;
 const dropCell = getCellUnderDrag(clientX, clientY);
@@ -293,7 +324,7 @@ const c = parseInt(dropCell.dataset.c);
 const shape = currentShapes[dragIdx];
 if (canPlace(shape.matrix, r, c)) {
 for (let sR = 0; sR < shape.matrix.length; sR++) {
-for (let sC = 0; sC < shape.matrix[0].length; sC++) {
+for (let sC = 0; sC < shape.matrix.length; sC++) {
 if (shape.matrix[sR][sC]) board[r + sR][c + sC] = shape.color;
 }
 }
@@ -345,9 +376,9 @@ cells[idx].classList.remove('filled');
 }
 }
 function canPlace(matrix, startR, startC) {
-if (startR + matrix.length > BOARD_SIZE || startC + matrix[0].length > BOARD_SIZE) return false;
+if (startR + matrix.length > BOARD_SIZE || startC + matrix.length > BOARD_SIZE) return false;
 for (let r = 0; r < matrix.length; r++) {
-for (let c = 0; c < matrix[0].length; c++) {
+for (let c = 0; c < matrix.length; c++) {
 if (matrix[r][c] && board[startR + r][startC + c] > 0) return false;
 }
 }

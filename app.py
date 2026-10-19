@@ -10,10 +10,10 @@ st.set_page_config(
 st.title("🟩 Game Xếp Khối Màu (Block Blast Pro)")
 st.markdown(
     "**Cách chơi:** Giữ chuột trái vào khối hình bên dưới, **kéo rê khối hình** và thả vào vị trí trống trên bảng 10x10. "
-    "Xếp kín hàng hoặc cột để kích nổ ghi điểm! Tùy chỉnh nhạc nền bên trong Menu Cấu Hình."
+    "Xếp kín hàng hoặc cột để kích nổ ghi điểm! Tùy chỉnh độ khó tại màn hình Menu."
 )
 
-# KHUNG NHẠC NỀN CHILL TREND: Great Little Things từ Spotify (Đặt cố định bên ngoài hỗ trợ nghe liên tục)
+# TRÌNH PHÁT NHẠC NỀN CHILL: Great Little Things (Spotify Player)
 st.markdown("### 🎵 Nhạc nền phát kèm: Great Little Things")
 components.iframe(
     src="https://spotify.com",
@@ -21,7 +21,7 @@ components.iframe(
     scrolling=False
 )
 
-# MÃ NGUỒN GAME CSS/HTML5 TÍCH HỢP HỆ THỐNG ÂM THANH VÀO MENU CÀI ĐẶT
+# MÃ NGUỒN GAME CSS/HTML5 SỬA HOÀN TOÀN LỖI ĐÓNG BĂNG MẢNG
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -32,20 +32,20 @@ game_html = r"""
   body { margin: 0; background: #0f172a; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; user-select: none; -webkit-user-select: none; }
   #container { max-width: 450px; margin: 10px auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; min-height: 520px; }
   
-  /* Màn hình khởi đầu kiêm Menu Cài Đặt (Cấu Hình) */
+  /* Menu mở đầu */
   #start-screen { position: absolute; inset: 0; background: #1e293b; border-radius: 16px; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
   #start-title { font-size: 28px; font-weight: bold; color: #f59e0b; margin-bottom: 25px; }
-  .menu-section { width: 80%; margin-bottom: 20px; text-align: left; }
+  .menu-section { width: 80%; margin-bottom: 25px; text-align: left; }
   .menu-label { font-size: 14px; margin-bottom: 6px; color: #94a3b8; font-weight: bold; }
   
   select, button.setting-toggle { width: 100%; padding: 10px 14px; font-size: 15px; font-weight: bold; border-radius: 6px; border: 2px solid #475569; background: #334155; color: white; cursor: pointer; outline: none; box-sizing: border-box; }
   button.setting-toggle { background: #1e293b; border-color: #f59e0b; color: #f59e0b; }
-  button.setting-toggle.active { background: #d4af37; color: #111; border-color: #d4af37; }
+  button.setting-toggle.active { background: #10b981; color: white; border-color: #10b981; }
   
   #start-btn { width: 80%; padding: 12px 0; font-size: 18px; font-weight: bold; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(59,130,246,0.4); margin-top: 15px; }
   #start-btn:hover { background: #2563eb; }
   
-  /* Khu vực bảng chơi chính */
+  /* Bàn cờ chính */
   #game-area { display: none; }
   #score-board { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #f59e0b; display: flex; justify-content: space-around; }
   #diff-indicator { font-size: 14px; background: #334155; padding: 2px 10px; border-radius: 12px; color: #cbd5e1; }
@@ -54,7 +54,7 @@ game_html = r"""
   .cell.filled { box-shadow: inset 0 0 6px rgba(0,0,0,0.4); }
   .cell.hovered { background: #64748b !important; opacity: 0.8; }
   
-  /* Vùng khay chứa mảnh ghép */
+  /* Khay chứa khối hình chưa xếp */
   #shapes-container { display: flex; justify-content: space-around; align-items: center; min-height: 120px; background: #334155; padding: 10px; border-radius: 8px; position: relative; }
   .shape-box { display: grid; grid-gap: 2px; padding: 8px; border-radius: 6px; background: rgba(255,255,255,0.03); touch-action: none; position: relative; z-index: 2; }
   .s-cell { width: 14px; height: 14px; border-radius: 2px; }
@@ -68,11 +68,10 @@ game_html = r"""
 <body>
 
 <div id="container">
-  <!-- MÀN HÌNH MỞ ĐẦU KIM MENU CÀI ĐẶT -->
+  <!-- MENU MỞ ĐẦU / CÀI ĐẶT -->
   <div id="start-screen">
     <div id="start-title">🧱 BLOCK PUZZLE PRO</div>
     
-    <!-- Mục 1: Chọn độ khó -->
     <div class="menu-section">
       <div class="menu-label">⚙️ CẤP ĐỘ THỬ THÁCH:</div>
       <select id="difficulty-select">
@@ -82,16 +81,15 @@ game_html = r"""
       </select>
     </div>
 
-    <!-- Mục 2: Cài đặt Âm thanh nổ khối (Mới chuyển vào đây) -->
     <div class="menu-section">
-      <div class="menu-label">🔊 HIỆU ỨNG ÂM THANH (SFX):</div>
-      <button id="sfx-toggle" class="setting-toggle active" type="button">MỞ ÂM THANH ĐẬP KHỐI</button>
+      <div class="menu-label">🔊 HIỆU ỨNG NỔ KHỐI (SFX):</div>
+      <button id="sfx-toggle" class="setting-toggle active" type="button">ÂM THANH: ĐANG MỞ</button>
     </div>
 
     <button id="start-btn" type="button">ÁP DỤNG & VÀO CHƠI 🎮</button>
   </div>
 
-  <!-- BÀN CỜ CHƠI GAME CHÍNH -->
+  <!-- PHẦN GAMEPLAY CHÍNH -->
   <div id="game-area">
     <div id="score-board">
       <div>Điểm: <span id="score">0</span> <span id="diff-indicator">Vừa</span></div>
@@ -102,7 +100,7 @@ game_html = r"""
     <div id="shapes-container"></div>
     
     <div id="game-over">TRÒ CHƠI KẾT THÚC!</div>
-    <button id="reset-btn">Chơi Lại 🔄</button>
+    <button id="reset-btn">Chroi Lại 🔄</button>
     <button id="config-btn">Menu Cấu Hình 🏠</button>
   </div>
 </div>
@@ -116,14 +114,15 @@ game_html = r"""
   let currentShapes = [];
   let dragIdx = null;
   let currentDifficulty = 'medium';
-  let isGameInitialized = false; // Biến kiểm tra xem ván đấu đã chạy chưa
-  let sfxEnabled = true; // Trạng thái âm thanh mặc định bật
+  let isGameInitialized = false;
+  let sfxEnabled = true;
 
   const colors = {
     1: '#ef4444', 2: '#3b82f6', 3: '#10b981', 
     4: '#a855f7', 5: '#f59e0b', 6: '#06b6d4'
   };
 
+  // ĐÃ SỬA: Định hình ma trận rõ ràng, không dùng khai báo trống gây sập luồng JS
   const shapesPool = {
     easy: [
       [[1]], 
@@ -138,13 +137,13 @@ game_html = r"""
       [[1], [1]], 
       [[1], [1], [1]], 
       [[1, 1], [1, 1]], 
-      [[1, 1, 1], [0, 1, 0], [0, 1, 0]], 
-      [[1, 0, 0], [1, 0, 0], [1, 1, 1]], 
-      [[1, 1, 0], [0, 1, 1], [0, 0, 0]]
+      [[1, 1, 1], [0, 1, 0]], 
+      [[1, 1], [1, 0], [1, 0]], 
+      [[1, 1, 0], [0, 1, 1]]
     ],
     hard: [
       [[1, 1], [1, 1]], 
-      [[1, 1, 1], [1, 1, 1], [1, 1, 1]], // Siêu khối vuông bự 3x3
+      [[1, 1, 1], [1, 1, 1], [1, 1, 1]], 
       [[1, 1, 1, 1]], 
       [[1], [1], [1], [1]], 
       [[1, 1, 1], [1, 0, 0], [1, 0, 0]], 
@@ -164,34 +163,32 @@ game_html = r"""
 
   let audioCtx = null;
   function playBlastSound() {
-    if (!sfxEnabled) return; // Nếu tắt SFX trong cài đặt thì không phát âm thanh
+    if (!sfxEnabled) return;
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       let osc = audioCtx.createOscillator();
       let gain = audioCtx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.25);
-      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+      osc.frequency.setValueAtTime(550, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
       osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.start(); osc.stop(audioCtx.currentTime + 0.25);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.2);
     } catch(e){}
   }
 
-  // Bật/tắt trạng thái hiệu ứng âm thanh nổ khối trong Menu Cài đặt
   sfxToggle.addEventListener('click', () => {
     sfxEnabled = !sfxEnabled;
     if (sfxEnabled) {
-      sfxToggle.textContent = "MỞ ÂM THANH ĐẬP KHỐI";
+      sfxToggle.textContent = "AM THANH: ĐANG MỞ";
       sfxToggle.classList.add('active');
     } else {
-      sfxToggle.textContent = "TẮT ÂM THANH ĐẬP KHỐI";
+      sfxToggle.textContent = "AM THANH: ĐANG TẮT";
       sfxToggle.classList.remove('active');
     }
   });
 
-  // CLICK NÚT ÁP DỤNG & VÀO CHƠI
   startBtn.addEventListener('click', () => {
     const oldDiff = currentDifficulty;
     currentDifficulty = document.getElementById('difficulty-select').value;
@@ -200,17 +197,13 @@ game_html = r"""
     startScreen.style.display = 'none';
     gameArea.style.display = 'block';
     
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    // Nếu chưa khởi tạo game lần nào, hoặc người chơi đổi độ khó mới -> Mới reset bàn cờ
     if (!isGameInitialized || oldDiff !== currentDifficulty) {
       restartGame();
       isGameInitialized = true;
     }
-    startBtn.textContent = "QUAY LẠI VÁN CHƠI 🎮"; // Đổi tên nút để phù hợp khi mở lại giữa trận
+    startBtn.textContent = "QUAY LẠI TRẬN ĐẤU 🎮";
   });
 
-  // Bấm vào nút Cấu hình giữa trận để mở bảng cài đặt mà không mất tiến trình
   document.getElementById('config-btn').addEventListener('click', () => {
     gameArea.style.display = 'none';
     startScreen.style.display = 'flex';
@@ -225,26 +218,28 @@ game_html = r"""
         cell.dataset.r = r;
         cell.dataset.c = c;
         gridDOM.appendChild(cell);
-}
-}
-}
-function createDraggableShape(shapeData, index) {
-const matrix = shapeData.matrix;
-const box = document.createElement('div');
-box.className = 'shape-box';
-box.id = shape-${index};
-box.style.gridTemplateRows = repeat(${matrix.length}, 1fr);
-box.style.gridTemplateColumns = repeat(${matrix.length}, 1fr);
-for (let r = 0; r < matrix.length; r++) {
-for (let c = 0; c < matrix.length; c++) {
-const sCell = document.createElement('div');
-if (matrix[r][c]) {
-sCell.className = 's-cell';
-sCell.style.background = colors[shapeData.color];
-} else {
-sCell.className = 'empty-s-cell';
-}
-box.appendChild(sCell);
+      }
+    }
+  }
+
+  function createDraggableShape(shapeData, index) {
+    const matrix = shapeData.matrix;
+    const box = document.createElement('div');
+    box.className = 'shape-box';
+    box.id = `shape-${index}`;
+    box.style.gridTemplateRows = `repeat(${matrix.length}, 1fr)`;
+    box.style.gridTemplateColumns = `repeat(${matrix[0].length}, 1fr)`;
+
+    for (let r = 0; r < matrix.length; r++) {
+      for (let c = 0; c < matrix[0].length; c++) {
+        const sCell = document.createElement('div');
+        if (matrix[r][c]) {
+          sCell.className = 's-cell';
+          sCell.style.background = colors[shapeData.color];
+        } else {
+          sCell.className = 'empty-s-cell';
+        }
+        box.appendChild(sCell);
 }
 }
 box.addEventListener('mousedown', (e) => startDrag(e, index));
@@ -297,7 +292,7 @@ function showPlacementPreview(matrix, startR, startC) {
 if (!canPlace(matrix, startR, startC)) return;
 const cells = gridDOM.children;
 for (let r = 0; r < matrix.length; r++) {
-for (let c = 0; c < matrix.length; c++) {
+for (let c = 0; c < matrix[0].length; c++) {
 if (matrix[r][c]) {
 const idx = (startR + r) * BOARD_SIZE + (startC + c);
 if (cells[idx]) cells[idx].classList.add('hovered');
@@ -324,7 +319,7 @@ const c = parseInt(dropCell.dataset.c);
 const shape = currentShapes[dragIdx];
 if (canPlace(shape.matrix, r, c)) {
 for (let sR = 0; sR < shape.matrix.length; sR++) {
-for (let sC = 0; sC < shape.matrix.length; sC++) {
+for (let sC = 0; sC < shape.matrix[0].length; sC++) {
 if (shape.matrix[sR][sC]) board[r + sR][c + sC] = shape.color;
 }
 }
@@ -376,9 +371,9 @@ cells[idx].classList.remove('filled');
 }
 }
 function canPlace(matrix, startR, startC) {
-if (startR + matrix.length > BOARD_SIZE || startC + matrix.length > BOARD_SIZE) return false;
+if (startR + matrix.length > BOARD_SIZE || startC + matrix[0].length > BOARD_SIZE) return false;
 for (let r = 0; r < matrix.length; r++) {
-for (let c = 0; c < matrix.length; c++) {
+for (let c = 0; c < matrix[0].length; c++) {
 if (matrix[r][c] && board[startR + r][startC + c] > 0) return false;
 }
 }

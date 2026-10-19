@@ -22,7 +22,7 @@ game_html = r"""
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#020204; color:#fff; font-family:Arial,sans-serif; }
-  #game { position:relative; width:100%; height:680px; overflow:hidden; background:#020204; }
+  #game { position:relative; width:100%; height:600px; overflow:hidden; background:#020204; }
   canvas { display:block; width:100%; height:100%; }
   #music-btn { position:absolute; z-index:5; top:14px; left:14px; padding:10px 16px; border:0; border-radius:6px; background:#d4af37; color:#111; font-weight:bold; cursor:pointer; }
   #help { position:absolute; z-index:4; top:14px; right:14px; max-width:250px; padding:10px 12px; background:#08080ddd; border:1px solid #806c2c; border-radius:8px; font-size:12px; line-height:1.5; }
@@ -30,11 +30,11 @@ game_html = r"""
   #title { color:#e5c65b; font-size:20px; font-weight:bold; margin-bottom:5px; }
   #meta { color:#eee; font-size:13px; }
   #error { display:none; position:absolute; z-index:8; inset:65px 12px auto; padding:12px; background:#581b1b; border:1px solid #ff7777; border-radius:8px; }
-  @media(max-width:600px) { #game { height:620px; } #help { top:64px; left:12px; right:auto; } #info { max-width:94%; padding:10px 12px; } #title {font-size:16px;} }
+  @media(max-width:600px) { #game { height:500px; } #help { top:64px; left:12px; right:auto; } #info { max-width:94%; padding:10px 12px; } #title {font-size:16px;} }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tweenjs/tween.js@18.6.4/dist/tween.umd.js"></script>
+<script src="https://jsdelivr.net"></script>
+<script src="https://jsdelivr.net"></script>
+<script src="https://jsdelivr.net"></script>
 </head>
 <body>
 <div id="game">
@@ -47,23 +47,28 @@ game_html = r"""
 (() => {
   const root = document.getElementById('game');
   const errorBox = document.getElementById('error');
+  const titleUI = document.getElementById('title');
+  const metaUI = document.getElementById('meta');
+  const musicBtn = document.getElementById('music-btn');
+
   function showError(message) {
     errorBox.style.display = 'block';
-    errorBox.textContent = 'Không thể khởi tạo game: ' + message + '. Hãy kiểm tra kết nối mạng hoặc tải lại trang.';
+    errorBox.textContent = 'Không thể khởi tạo game: ' + message;
   }
+
   if (!window.THREE || !THREE.OrbitControls || !window.TWEEN) {
-    showError('Không tải được thư viện 3D');
+    showError('Không tải được thư viện 3D từ CDN.');
     return;
   }
 
   const artList = [
-  {title:'Đêm đầy sao', meta:'Vincent van Gogh · Bảo tàng nghệ thuật', color:0x2d5eaa, accent:0xf2d35e},
-    {title:'Mona Lisa', meta:'Leonardo da Vinci · Thời kỳ Phục Hưng', color:0x4a6844, accent:0xc7a66b},
-    {title:'Lady with an Ermine', meta:'Leonardo da Vinci · Chân dung Phục Hưng', color:0x6c493b, accent:0xe0c7a0},
-    {title:'The Scream', meta:'Edvard Munch · Trường phái Biểu hiện', color:0x9c4b2e, accent:0xf2b44d},
-    {title:'The Last Supper', meta:'Leonardo da Vinci · Bữa ăn tối cuối cùng', color:0x493b30, accent:0xd4af37},
-    {title:'Girl with a Pearl Earring', meta:'Johannes Vermeer · Hội họa Hà Lan', color:0x244e67, accent:0xe9d7b0},
-    {title:'Adam and Eve', meta:'Albrecht Dürer · Nghệ thuật Phục Hưng', color:0x53643d, accent:0xc7b58b}
+    {title:'Đêm đầy sao', meta:'Vincent van Gogh · Trường phái Ấn tượng', color:0x1b2f56, accent:0xf3cb46},
+    {title:'Mona Lisa', meta:'Leonardo da Vinci · Thời kỳ Phục Hưng', color:0x393e2b, accent:0xa68a56},
+    {title:'Lady with an Ermine', meta:'Leonardo da Vinci · Chân dung Phục Hưng', color:0x4d3327, accent:0xcbb082},
+    {title:'The Scream', meta:'Edvard Munch · Trường phái Biểu hiện', color:0x7e3517, accent:0xdf9836},
+    {title:'The Last Supper', meta:'Leonardo da Vinci · Bữa ăn tối cuối cùng', color:0x3c3025, accent:0xbd9a2b},
+    {title:'Girl with a Pearl Earring', meta:'Johannes Vermeer · Hội họa Hà Lan', color:0x163549, accent:0xcaa36d},
+    {title:'Adam and Eve', meta:'Albrecht Dürer · Nghệ thuật Phục Hưng', color:0x3f492b, accent:0xaa986b}
   ];
 
   let scene, camera, renderer, controls, currentIndex = 0, transitioning = false;
@@ -71,66 +76,68 @@ game_html = r"""
   const keys = Object.create(null);
   const speed = 0.12;
 
+  let audioCtx = null, oscillator = null, gainNode = null, musicPlaying = false;
+  musicBtn.addEventListener('click', () => {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      gainNode = audioCtx.createGain();
+      gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+      gainNode.connect(audioCtx.destination);
+    }
+    if (!musicPlaying) {
+      oscillator = audioCtx.createOscillator();
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(293.66, audioCtx.currentTime); // Âm giai Re dịu nhẹ
+      oscillator.connect(gainNode);
+      oscillator.start();
+      musicPlaying = true;
+      musicBtn.textContent = "⏸ TẮT NHẠC NỀN";
+    } else {
+      oscillator.stop();
+      musicPlaying = false;
+      musicBtn.textContent = "🎵 BẬT NHẠC NỀN";
+    }
+  });
+
   try {
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x08080d);
-    scene.fog = new THREE.Fog(0x08080d, 18, 48);
+    scene.background = new THREE.Color(0x06060a);
+    scene.fog = new THREE.Fog(0x06060a, 15, 40);
 
-    camera = new THREE.PerspectiveCamera(65, root.clientWidth / root.clientHeight, 0.1, 100);
-    camera.position.set(0, 2.3, 10);
+    camera = new THREE.PerspectiveCamera(60, root.clientWidth / root.clientHeight, 0.1, 100);
+    camera.position.set(0, 2.2, 9);
 
     renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setSize(root.clientWidth, root.clientHeight);
     root.appendChild(renderer.domElement);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.07;
+    controls.dampingFactor = 0.08;
     controls.enablePan = false;
     controls.minDistance = 2;
-    controls.maxDistance = 18;
-    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.maxDistance = 14;
+    controls.maxPolarAngle = Math.PI * 0.48;
     controls.target.set(0, 2.2, 0);
 
-    scene.add(new THREE.HemisphereLight(0xbfcfff, 0x24170f, 1.25));
-    const mainLight = new THREE.PointLight(0xffdca0, 2.0, 35);
-    mainLight.position.set(0, 7, 4);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x24170f, 1.1));
+    const mainLight = new THREE.PointLight(0xffe0b3, 1.5, 30);
+    mainLight.position.set(0, 6, 2);
     scene.add(mainLight);
 
-
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(38, 38),
-      new THREE.MeshStandardMaterial({color:0x29221d, roughness:0.92})
+      new THREE.PlaneGeometry(40, 40),
+      new THREE.MeshStandardMaterial({color:0x221a14, roughness:0.9})
     );
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = 0;
     scene.add(floor);
 
-    // Tường cuối phòng và hai tường bên
-    const wallMat = new THREE.MeshStandardMaterial({color:0x17171e, roughness:0.95});
-    const backWall = new THREE.Mesh(new THREE.BoxGeometry(36, 9, 0.4), wallMat);
-    backWall.position.set(0, 4.5, -13);
+    const wallMat = new THREE.MeshStandardMaterial({color:0x121215, roughness:0.95});
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(36, 10, 0.5), wallMat);
+    backWall.position.set(0, 5, -10);
     scene.add(backWall);
-    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 9, 27), wallMat);
-    leftWall.position.set(-18, 4.5, 0);
-    scene.add(leftWall);
-    const rightWall = leftWall.clone();
-    rightWall.position.x = 18;
-    scene.add(rightWall);
 
-    // Đèn trần trang trí
-    for (let x=-12; x<=12; x+=6) {
-      const lamp = new THREE.PointLight(0xffd38a, 1.3, 12);
-      lamp.position.set(x, 7.5, -5);
-      scene.add(lamp);
-      const bulb = new THREE.Mesh(
-        new THREE.SphereGeometry(0.12, 12, 8),
-        new THREE.MeshBasicMaterial({color:0xffe2a0})
-      );
-      bulb.position.copy(lamp.position);
-      scene.add(bulb);
-    }
     artworkGroup = new THREE.Group();
     scene.add(artworkGroup);
 
@@ -138,183 +145,106 @@ game_html = r"""
       while (artworkGroup.children.length) {
         const child = artworkGroup.children.pop();
         if (child.geometry) child.geometry.dispose();
-        if (child.material) {
-          if (Array.isArray(child.material)) child.material.forEach(m=>m.dispose());
-          else child.material.dispose();
-        }
+        if (child.material) child.material.dispose();
       }
       const art = artList[index];
+      titleUI.textContent = art.title;
+      metaUI.textContent = art.meta;
+
       const frame = new THREE.Mesh(
-        new THREE.BoxGeometry(5.4, 3.9, 0.25),
-        new THREE.MeshStandardMaterial({color:0xc5a04b, metalness:0.65, roughness:0.32})
+        new THREE.BoxGeometry(5.4, 3.9, 0.2),
+        new THREE.MeshStandardMaterial({color:0xd4af37, metalness:0.7, roughness:0.3})
       );
-      frame.position.set(0, 4.1, -12.55);
+      frame.position.set(0, 4.0, -9.7);
       artworkGroup.add(frame);
 
       const canvas = document.createElement('canvas');
-      canvas.width = 600; canvas.height = 420;
+      canvas.width = 512; canvas.height = 384;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#' + art.color.toString(16).padStart(6,'0');
-      ctx.fillRect(0,0,600,420);
-      // Tạo hình minh họa nghệ thuật bằng các mảng màu, không phụ thuộc URL ảnh ngoài
-      const grad = ctx.createLinearGradient(0,0,600,420);
+      const grad = ctx.createLinearGradient(0,0,512,384);
       grad.addColorStop(0, '#' + art.color.toString(16).padStart(6,'0'));
       grad.addColorStop(1, '#' + art.accent.toString(16).padStart(6,'0'));
-      ctx.fillStyle = grad; ctx.fillRect(0,0,600,420);
-      ctx.globalAlpha = 0.75;
-      for(let i=0;i<120;i++){
-        ctx.fillStyle = i%2 ? '#fff0b5' : '#101522';
+      ctx.fillStyle = grad; ctx.fillRect(0,0,512,384);
+      
+      ctx.globalAlpha = 0.35;
+      for(let i=0; i<50; i++){
+        ctx.fillStyle = i%2 ? '#fff' : '#000';
         ctx.beginPath();
-        const x = (i*137 + index*43)%600, y=(i*71 + index*29)%420;
-        ctx.arc(x,y, (i%7)+2, 0, Math.PI*2); ctx.fill();
+        ctx.arc((i*43+index*79)%512, (i*29+index*61)%384, (i%10)+4, 0, Math.PI*2);
+        ctx.fill();
       }
-      ctx.globalAlpha = 1;
+      ctx.globalAlpha = 1.0;
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 28px Arial';
+      ctx.font = 'bold 22px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(art.title, 300, 380);
+      ctx.fillText(art.title, 256, 192);
+
       const texture = new THREE.CanvasTexture(canvas);
       const picture = new THREE.Mesh(
-        new THREE.PlaneGeometry(5.05, 3.55),
-        new THREE.MeshBasicMaterial({map:texture})
+        new THREE.PlaneGeometry(5.1, 3.6),
+        new THREE.MeshBasicMaterial({map: texture})
       );
-      picture.position.set(0,4.1,-12.38);
+      picture.position.set(0, 4.0, -9.58);
       artworkGroup.add(picture);
-
-      document.getElementById('title').textContent = art.title;
-      document.getElementById('meta').textContent = art.meta + ' · Nhấp khi đứng gần để xem tác phẩm tiếp theo';
-      const glow = new THREE.PointLight(art.accent, 1.0, 9);
-      glow.position.set(0,5.2,-9.8);
-      artworkGroup.add(glow);
     }
+
     makeArtwork(currentIndex);
 
-    // Bố trí các cột nhỏ hai bên hành lang
-    for (const side of [-1,1]) {
-      for (let z=-10; z<=8; z+=6) {
-        const column = new THREE.Mesh(
-          new THREE.BoxGeometry(0.65,3.2,0.65),
-          new THREE.MeshStandardMaterial({color:0x5a4936, roughness:0.75})
-        );
-        column.position.set(side*8,1.6,z);
-        scene.add(column);
-      }
-    }
+    window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+    window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
-    // Âm thanh tự tạo bằng Web Audio, không cần URL nhạc ngoài
-     let audioCtx = null, masterGain = null, musicTimer = null, noteIndex = 0;
-    const notes = [261.63,329.63,392.00,329.63,293.66,349.23,440.00,349.23];
-    function startMusic() {
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContextClass) {
-        document.getElementById('music-btn').textContent = 'Trình duyệt không hỗ trợ nhạc';
-        return;
+    window.addEventListener('click', (e) => {
+      if (e.target.id === 'music-btn' || transitioning) return;
+      const dist = camera.position.distanceTo(new THREE.Vector3(0, 2.2, -9.5));
+      if (dist < 6.0) {
+        transitioning = true;
+        currentIndex = (currentIndex + 1) % artList.length;
+        new TWEEN.Tween(camera.position)
+          .to({z: 8, x: 0}, 750)
+          .easing(TWEEN.Easing.Quadratic.Out)
+          .onComplete(() => {
+            makeArtwork(currentIndex);
+            transitioning = false;
+          })
+          .start();
       }
-      if (!audioCtx) {
-        audioCtx = new AudioContextClass();
-        masterGain = audioCtx.createGain();
-        masterGain.gain.value = 0.045;
-        masterGain.connect(audioCtx.destination);
-      }
-      audioCtx.resume();
-      if (musicTimer) {
-        clearInterval(musicTimer);
-        musicTimer = null;
-        document.getElementById('music-btn').textContent = '🎵 BẬT NHẠC NỀN';
-        return;
-      }
-      musicTimer = setInterval(() => {
-        if (!audioCtx || audioCtx.state !== 'running') return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = notes[noteIndex % notes.length];
-        noteIndex++;
-        gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.25, audioCtx.currentTime + 0.08);
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.65);
-        osc.connect(gain); gain.connect(masterGain);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.7);
-      }, 520);
-      document.getElementById('music-btn').textContent = '⏸️ TẠM DỪNG NHẠC';
-    }
-    document.getElementById('music-btn').addEventListener('click', startMusic);
-
-// Bấm tranh chỉ khi không kéo chuột và đang ở gần phòng tranh
-    let pointerDown = null;
-    renderer.domElement.addEventListener('pointerdown', e => {
-      pointerDown = {x:e.clientX, y:e.clientY};
     });
-    renderer.domElement.addEventListener('pointerup', e => {
-      if (!pointerDown) return;
-      const distance = Math.hypot(e.clientX-pointerDown.x, e.clientY-pointerDown.y);
-      pointerDown = null;
-      if (distance > 5 || transitioning) return;
-      const distanceToArtwork = Math.hypot(camera.position.x, camera.position.z - (-10.5));
-      if (distanceToArtwork > 11) {
-        document.getElementById('title').textContent = 'Bạn đang đứng quá xa bức tranh';
-        document.getElementById('meta').textContent = 'Tiến lại gần bức tranh rồi nhấp chuột để chuyển tác phẩm.';
-        return;
-      }
-      transitioning = true;
-      const next = (currentIndex + 1) % artList.length;
-      const oldPos = artworkGroup.position.clone();
-      new TWEEN.Tween(artworkGroup.scale)
-        .to({x:0.05,y:0.05,z:0.05},350)
-        .easing(TWEEN.Easing.Quadratic.In)
-        .onComplete(() => {
-          currentIndex = next;
-          makeArtwork(currentIndex);
-          artworkGroup.scale.set(0.05,0.05,0.05);
-          new TWEEN.Tween(artworkGroup.scale)
-            .to({x:1,y:1,z:1},500)
-            .easing(TWEEN.Easing.Back.Out)
-            .onComplete(() => { transitioning = false; });
-          artworkGroup.position.copy(oldPos);
-        }).start();
-    });
-
-    window.addEventListener('keydown', e => {
-      if (e.target && ['INPUT','TEXTAREA'].includes(e.target.tagName)) return;
-      if (e.code in keys) keys[e.code] = true;
-      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-    });
-    window.addEventListener('keyup', e => { if (e.code in keys) keys[e.code] = false; });
-    window.addEventListener('blur', () => { Object.keys(keys).forEach(k=>keys[k]=false); });
 
     function animate() {
       requestAnimationFrame(animate);
       TWEEN.update();
-      controls.update();
+
       const forward = new THREE.Vector3();
       camera.getWorldDirection(forward);
-      forward.y = 0; forward.normalize();
-      const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize().negate();
-      if (keys.KeyW || keys.ArrowUp) { camera.position.addScaledVector(forward,speed); controls.target.addScaledVector(forward,speed); }
-      if (keys.KeyS || keys.ArrowDown) { camera.position.addScaledVector(forward,-speed); controls.target.addScaledVector(forward,-speed); }
-      if (keys.KeyA || keys.ArrowLeft) { camera.position.addScaledVector(right,-speed); controls.target.addScaledVector(right,-speed); }
-      if (keys.KeyD || keys.ArrowRight) { camera.position.addScaledVector(right,speed); controls.target.addScaledVector(right,speed); }
-      camera.position.x = THREE.MathUtils.clamp(camera.position.x,-15,15);
-      camera.position.z = THREE.MathUtils.clamp(camera.position.z,-11.2,16);
-      controls.target.x = THREE.MathUtils.clamp(controls.target.x,-15,15);
-      controls.target.z = THREE.MathUtils.clamp(controls.target.z,-12,15);
-      renderer.render(scene,camera);
-    }
-    animate();
+      forward.y = 0;
+      forward.normalize();
 
-    function resize() {
-      const width = root.clientWidth, height = root.clientHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width,height);
+      const side = new THREE.Vector3();
+      side.crossVectors(camera.up, forward).normalize();
+
+      if (keys['w'] || keys['arrowup']) camera.position.addScaledVector(forward, speed);
+      if (keys['s'] || keys['arrowdown']) camera.position.addScaledVector(forward, -speed);
+      if (keys['a'] || keys['arrowleft']) camera.position.addScaledVector(side, speed);
+      if (keys['d'] || keys['arrowright']) camera.position.addScaledVector(side, -speed);
+
+      camera.position.x = Math.max(-12, Math.min(12, camera.position.x));
+      camera.position.z = Math.max(-7, Math.min(12, camera.position.z));
+
+      controls.update();
+      renderer.render(scene, camera);
     }
-    window.addEventListener('resize',resize);
-  } catch (err) {
-    console.error(err);
-    showError(err && err.message ? err.message : String(err));
-  }
+requestAnimationFrame(animate);
+window.addEventListener('resize', () => {
+camera.aspect = root.clientWidth / root.clientHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(root.clientWidth, root.clientHeight);
+});
+} catch (err) {
+showError(err.message);
+}
 })();
-</script>
-</body>
-</html>
+
+
+
 """
+components.html(game_html, height=620, scrolling=False)

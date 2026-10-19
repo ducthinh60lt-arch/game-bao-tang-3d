@@ -267,3 +267,29 @@ game_html = r"""
         for (let c = 0; c < BOARD_SIZE; c++) {
           if (canPlace(shape.matrix, r, c)) {
             return false; // Còn đi tiếp được
+            }
+}
+}
+}
+return true; // Không còn chỗ trống để vừa bất kỳ khối nào
+}
+// Khởi động lại vòng chơi mới
+function restartGame() {
+board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+score = 0;
+document.getElementById('score').textContent = score;
+gameOverDOM.style.display = 'none';
+initBoard();
+spawnShapes();
+renderBoard();
+}
+document.getElementById('reset-btn').addEventListener('click', restartGame);
+// Chạy thiết lập lần đầu tiên khi tải game
+initBoard();
+spawnShapes();
+renderBoard();
+})();
+
+
+
+"""

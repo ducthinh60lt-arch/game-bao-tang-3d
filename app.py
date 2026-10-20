@@ -1,19 +1,19 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# CẤU HÌNH TRANG STREAMLIT NỀN TẢNG
+# 1. Cấu hình trang Streamlit nền tảng
 st.set_page_config(
-    page_title="Flappy Bird: Đại Ngàn Kỳ Vĩ",
+    page_title="Flappy Bird: Rừng Đại Thụ",
     page_icon="🐦",
     layout="centered",
 )
 
 st.title("🐦 Flappy Bird: Thung Lũng Đại Ngàn")
 st.markdown(
-    "**Cách chơi:** Click chuột trái vào khung game để giúp chim vỗ cánh đập liên tục và bay lên!"
+    "**Cách chơi:** Click chuột trái vào khung game để giúp chim vỗ cánh bay lên!"
 )
 
-# KHỐI CODE TRÒ CHƠI HOÀN CHỈNH ĐÃ TÍCH HỢP HIỆU ỨNG VÕ CÁNH VÀ LÀM RÕ MỎ CHIM
+# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas tích hợp trọn gói tạo cây theo ảnh của bạn
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -48,7 +48,7 @@ game_html = r"""
 
   let gameRunning = false, score = 0, audioCtx = null, frameCount = 0, pipes = [];
   const bird = { x: 70, y: 200, width: 30, height: 24, gravity: 0.15, velocity: 0, jump: -3.7 };
-  const pipeWidth = 58, pipeGap = 175, pipeSpeed = 1.4;
+  const pipeWidth = 75, pipeGap = 175, pipeSpeed = 1.4; // Tăng nhẹ độ rộng cây để tán lá xum xuê hơn
 
   function playJumpSound() {
     try {
@@ -73,14 +73,61 @@ game_html = r"""
     ctx.fillStyle = '#337146'; ctx.beginPath(); ctx.moveTo(0, canvas.height); ctx.quadraticCurveTo(90, canvas.height - 80, 200, canvas.height - 50); ctx.quadraticCurveTo(310, canvas.height - 90, canvas.width, canvas.height - 40); ctx.lineTo(canvas.width, canvas.height); ctx.fill();
   }
 
-  function drawTree(px, py, pw, ph, isTop) {
-    let trunkGrad = ctx.createLinearGradient(px, 0, px + pw, 0);
-    trunkGrad.addColorStop(0, '#4a3329'); trunkGrad.addColorStop(0.5, '#8d6e63'); trunkGrad.addColorStop(1, '#3e2723');
-    ctx.fillStyle = trunkGrad; ctx.fillRect(px, py, pw, ph);
+  // NÂNG CẤP: Hàm vẽ cây đại thụ có tán rộng tầng tầng lớp lớp bám theo bức ảnh của bạn
+  function drawPremiumTree(px, py, pw, ph, isTop) {
+    ctx.save();
+    
+    // 1. Vẽ thân cây gỗ nâu lớn có đổ bóng khối
+    let trunkGrad = ctx.createLinearGradient(px + pw*0.3, 0, px + pw*0.7, 0);
+    trunkGrad.addColorStop(0, '#3e2723'); trunkGrad.addColorStop(0.5, '#6d4c41'); trunkGrad.addColorStop(1, '#2d1510');
+    ctx.fillStyle = trunkGrad;
+    ctx.fillRect(px + pw * 0.35, py, pw * 0.3, ph);
+
     let leafY = isTop ? py + ph : py;
-    let leafGrad = ctx.createRadialGradient(px + pw/2, leafY, 5, px + pw/2, leafY, 32);
-    leafGrad.addColorStop(0, '#4caf50'); leafGrad.addColorStop(1, '#1b5e20');
-    ctx.fillStyle = leafGrad; ctx.beginPath(); ctx.arc(px + pw/2, leafY, 32, 0, Math.PI * 2); ctx.fill();
+    let branchDir = isTop ? -1 : 1;
+
+    // 2. Vẽ các nhánh cây lớn vươn rộng sang hai bên trước khi phủ lá lên
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.moveTo(px + pw * 0.5, leafY);
+    ctx.lineTo(px + pw * 0.1, leafY + 25 * branchDir);
+    ctx.lineTo(px + pw * 0.2, leafY + 30 * branchDir);
+    ctx.closePath(); ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(px + pw * 0.5, leafY);
+    ctx.lineTo(px + pw * 0.9, leafY + 25 * branchDir);
+    ctx.lineTo(px + pw * 0.8, leafY + 30 * branchDir);
+    ctx.closePath(); ctx.fill();
+
+    // 3. TẠO TÁN LÁ ĐA TẦNG XUM XUÊ (Vẽ nhiều khối cầu lá đan xen đổ bóng)
+    // Lớp lá nền tối phía dưới tạo độ dày xum xuê
+    ctx.fillStyle = '#1b3411';
+    ctx.beginPath();
+    ctx.arc(px + pw * 0.2, leafY, 32, 0, Math.PI * 2);
+    ctx.arc(px + pw * 0.5, leafY - 5 * branchDir, 42, 0, Math.PI * 2);
+    ctx.arc(px + pw * 0.8, leafY, 32, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lớp lá chính đón nắng màu xanh lục mướt đại ngàn
+    let leafGrad = ctx.createRadialGradient(px + pw*0.5, leafY, 5, px + pw*0.5, leafY, 40);
+    leafGrad.addColorStop(0, '#4caf50'); leafGrad.addColorStop(1, '#2e7d32');
+    ctx.fillStyle = leafGrad;
+    
+    ctx.beginPath();
+    ctx.arc(px + pw * 0.25, leafY + 2 * branchDir, 28, 0, Math.PI * 2);
+    ctx.arc(px + pw * 0.5, leafY - 2 * branchDir, 38, 0, Math.PI * 2);
+    ctx.arc(px + pw * 0.75, leafY + 2 * branchDir, 28, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Lớp lá sáng tạo điểm nhấn highlight đón nắng ở rìa tán cây giống trong ảnh
+    ctx.fillStyle = '#81c784';
+    ctx.beginPath();
+    ctx.arc(px + pw * 0.35, leafY - 12 * branchDir, 16, 0, Math.PI * 2);
+    ctx.arc(px + pw * 0.55, leafY - 15 * branchDir, 20, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
   function gameLoop() {
@@ -92,41 +139,19 @@ game_html = r"""
     frameCount++;
     for (let i = pipes.length - 1; i >= 0; i--) {
       let p = pipes[i]; p.x -= pipeSpeed;
-      drawTree(p.x, 0, pipeWidth, p.top, true);
-      let botY = canvas.height - p.bottom; drawTree(p.x, botY, pipeWidth, p.bottom, false);
+      drawPremiumTree(p.x, 0, pipeWidth, p.top, true);
+      let botY = canvas.height - p.bottom; drawPremiumTree(p.x, botY, pipeWidth, p.bottom, false);
       if (bird.x + 3 < p.x + pipeWidth && bird.x + bird.width - 3 > p.x && (bird.y + 3 < p.top || bird.y + bird.height - 3 > botY)) { gameRunning = false; document.querySelector('#start-screen .overlay-title').innerText = "SCORE: " + score; startScreen.style.display = 'flex'; return; }
       if (!p.passed && p.x + pipeWidth < bird.x) { p.passed = true; score++; scoreEl.innerText = score; }
-      if (p.x + pipeWidth + 40 < 0) pipes.splice(i, 1);
+      if (p.x + pipeWidth + 50 < 0) pipes.splice(i, 1);
     }
-    
-    // VẼ CHÚ CHIM SẮC NÉT + HIỆU ỨNG VỖ CÁNH DỰA VÀO MATH.SIN
-    ctx.save(); 
-    ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2); 
-    ctx.rotate(Math.max(-0.2, Math.min(0.5, bird.velocity * 0.08)));
-    
-    // Thân chim tròn vàng rực
-    let bGrad = ctx.createRadialGradient(-2, -2, 2, 0, 0, bird.width/2); 
-    bGrad.addColorStop(0, '#fff176'); bGrad.addColorStop(1, '#f4511e'); 
-    ctx.fillStyle = bGrad; ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2); ctx.rotate(Math.max(-0.2, Math.min(0.5, bird.velocity * 0.08)));
+    let bGrad = ctx.createRadialGradient(-2, -2, 2, 0, 0, bird.width/2); bGrad.addColorStop(0, '#fff176'); bGrad.addColorStop(1, '#f4511e'); ctx.fillStyle = bGrad; ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
-    
-    // Mắt chim rõ nét hơn
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(6, -4, 5.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(7, -4, 2.2, 0, Math.PI * 2); ctx.fill();
-    
-    // NÂNG CẤP: Làm rõ mỏ chim đỏ cam nổi bật vươn dài ra trước
-    ctx.fillStyle = '#f85818'; ctx.beginPath(); 
-    ctx.moveTo(9, -3); 
-    ctx.lineTo(20, 1); 
-    ctx.lineTo(7, 6); 
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-    
-    // NÂNG CẤP: Hiệu ứng đập cánh liên tục lên xuống sống động
-    let wingOscillation = Math.sin(frameCount * 0.4) * 3; // Cánh co giãn nhịp nhàng
-    ctx.fillStyle = '#fff9c4'; ctx.beginPath(); 
-    ctx.arc(-6, 2 + wingOscillation / 2, 5 + wingOscillation / 3, 0, Math.PI * 2); 
-    ctx.fill(); ctx.stroke();
-    
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5, -4, 5.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(6, -4, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f85818'; ctx.beginPath(); ctx.moveTo(9, -3); ctx.lineTo(20, 1); ctx.lineTo(7, 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    let wingOscillation = Math.sin(frameCount * 0.4) * 3; ctx.fillStyle = '#fff9c4'; ctx.beginPath(); ctx.arc(-6, 2 + wingOscillation / 2, 5 + wingOscillation / 3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.restore();
     requestAnimationFrame(gameLoop);
   }

@@ -10,8 +10,8 @@ st.set_page_config(
 
 st.title("🟩 Game Xếp Khối Màu (Block Blast Pro)")
 st.markdown(
-    "**Cách chơi:** **Nhấn và GIỮ CHUỘT PHẢI** vào một khối hình bên dưới để kéo đi, "
-    "di chuyển đến vị trí trên bảng 10x10, sau đó **THẢ CHUỘT PHẢI** để khối rơi xuống!"
+    "**Cách chơi mượt mà:** **Nhấn và GIỮ CHUỘT TRÁI** vào khối hình bên dưới để kéo đi, "
+    "di chuyển đến ô bất kỳ trên bảng 10x10, sau đó **THẢ CHUỘT TRÁI** để khối rơi xuống!"
 )
 
 # 2. Trình phát nhạc nền Spotify
@@ -22,7 +22,7 @@ components.iframe(
     scrolling=False
 )
 
-# 3. Mã nguồn Game HTML5/JS xử lý kéo thả Chuột phải chuẩn tọa độ Iframe
+# 3. Mã nguồn Game HTML5/JS xử lý kéo thả Chuột Trái (Chuẩn hóa 100%)
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -34,24 +34,24 @@ game_html = r"""
   #container { max-width: 430px; margin: 0 auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
   #score-board { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #f59e0b; }
   
-  /* Bảng game 10x10 */
+  /* Bảng lưới game 10x10 */
   #grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; background: #334155; padding: 8px; border-radius: 8px; margin-bottom: 20px; }
   .cell { aspect-ratio: 1; background: #1e293b; border-radius: 4px; transition: background 0.1s; }
   .cell.filled { background: #3b82f6; box-shadow: inset 0 0 5px rgba(255,255,255,0.4); }
-  .cell.hovered { background: rgba(245, 158, 11, 0.6) !important; } /* Preview màu cam rõ khi di chuột qua */
+  .cell.hovered { background: rgba(245, 158, 11, 0.6) !important; } /* Căn chỉnh khối nền cam sáng */
 
-  /* Khu vực chứa các khối để chọn */
+  /* Khu vực chứa 3 khối hình để chọn */
   #pieces { display: flex; justify-content: space-around; min-height: 100px; background: #334155; padding: 10px; border-radius: 8px; align-items: center; }
   .piece { display: grid; gap: 2px; cursor: grab; padding: 8px; border: 2px dashed #475569; border-radius: 6px; background: rgba(15, 23, 42, 0.4); }
   .p-cell { width: 14px; height: 14px; border-radius: 2px; }
   .p-cell.filled { background: #3b82f6; }
 
-  /* Khối ảo bay theo con trỏ chuột khi đang kéo */
+  /* Khối bóng ma ảo di chuyển bám sát trỏ chuột */
   #drag-proxy {
     position: absolute;
     display: grid;
     gap: 3px;
-    pointer-events: none; /* Rất quan trọng để không cản trở elementFromPoint */
+    pointer-events: none; /* Rất quan trọng: cho phép quét xuyên thấu xuống ô lưới phía dưới */
     display: none;
     z-index: 9999;
   }
@@ -68,13 +68,9 @@ game_html = r"""
   <div id="pieces"></div>
 </div>
 
-<!-- Khối mô phỏng bay theo chuột -->
 <div id="drag-proxy"></div>
 
 <script>
-  // Chặn menu chuột phải mặc định trong khu vực game
-  document.addEventListener('contextmenu', e => e.preventDefault());
-
   const gridEl = document.getElementById('grid');
   const scoreEl = document.getElementById('score');
   const piecesEl = document.getElementById('pieces');
@@ -87,18 +83,18 @@ game_html = r"""
   let isDragging = false;
   let draggedPieceIndex = null;
 
-  // SỬA LỖI 1: Khai báo định dạng ma trận số tuyệt đối cho các khối hình rõ ràng
+  // Bản đồ số tuyệt đối của các hình khối (Đầy đủ dữ liệu ô vuông)
   const pieceTemplates = [
-    [[1]], // Khối 1x1
-    [[1, 1]], // Thanh ngang 2 ô
-    [[1, 1, 1]], // Thanh ngang 3 ô
-    [[1, 1], [1, 1]], // Khối vuông 2x2
-    [[1, 0], [1, 1]], // Khối chữ L nhỏ
-    [[1, 1, 1], [0, 1, 0]] // Khối chữ T
+    [[1]],                               // Khối đơn 1x1
+    [[1, 1]],                            // Thanh ngang 2
+    [[1, 1, 1]],                         // Thanh ngang 3
+    [[1, 1], [1, 1]],                    // Khối vuông 2x2
+    [[1, 0], [1, 1]],                    // Chữ L nhỏ
+    [[1, 1, 1], [0, 1, 0]]               // Khối chữ T
   ];
   let currentPieces = [];
 
-  // Tạo bảng ô lưới
+  // Tạo giao diện lưới ban đầu
   function initBoard() {
     gridEl.innerHTML = '';
     for (let r = 0; r < 10; r++) {
@@ -127,7 +123,7 @@ game_html = r"""
     }
   }
 
-  // Sinh 3 khối mới
+  // Tạo ngẫu nhiên 3 khối mới
   function spawnPieces() {
     piecesEl.innerHTML = '';
     currentPieces = [];
@@ -150,9 +146,9 @@ game_html = r"""
         });
       });
 
-      // Bắt sự kiện Nhấn chuột phải
+      # Sự kiện NHẤN CHUỘT TRÁI để chọn và bắt đầu kéo
       pieceDiv.addEventListener('mousedown', (e) => {
-        if (e.button === 2 && currentPieces[i] !== null) {
+        if (e.button === 0 && currentPieces[i] !== null) {
           isDragging = true;
           draggedPieceIndex = i;
           createDragProxy(currentPieces[i]);
@@ -164,7 +160,6 @@ game_html = r"""
     }
   }
 
-  // Khối bóng ma chạy theo chuột
   function createDragProxy(piece) {
     dragProxy.innerHTML = '';
     dragProxy.style.display = 'grid';
@@ -180,23 +175,21 @@ game_html = r"""
     });
   }
 
-  // SỬA LỖI 2: Đổi sang cách tính vị trí chuột theo tọa độ nội bộ của Thẻ Container (khắc phục lỗi Iframe)
   function updateDragProxyPosition(e) {
     const rect = container.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    // Căn lề dịch sang một chút để con trỏ không che mất khối hình
+    // Đặt khối hình lệch tâm nhẹ lên trên ngón tay/con trỏ để người chơi dễ nhìn
     dragProxy.style.left = (x - 20) + 'px';
-    dragProxy.style.top = (y - 20) + 'px';
+    dragProxy.style.top = (y - 30) + 'px';
   }
 
-  // Lắng nghe di chuyển trên toàn màn hình game
+  // Theo dõi di chuyển chuột trên toàn bộ khung Iframe
   document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     updateDragProxyPosition(e);
 
     clearHoverEffects();
-    // Dùng trực tiếp tọa độ clientX/clientY để quét phần tử dưới chuột
     const cell = document.elementFromPoint(e.clientX, e.clientY);
     if (cell && cell.classList.contains('cell')) {
       const r = parseInt(cell.dataset.row);
@@ -205,9 +198,9 @@ game_html = r"""
     }
   });
 
-  // Thả chuột phải để đặt khối xuống
+  // Sự kiện THẢ CHUỘT TRÁI để thả khối hình xuống
   document.addEventListener('mouseup', (e) => {
-    if (!isDragging || e.button !== 2) return;
+    if (!isDragging || e.button !== 0) return;
     isDragging = false;
     dragProxy.style.display = 'none';
 
@@ -232,7 +225,9 @@ game_html = r"""
           const targetC = c + pc;
           if (targetR < 10 && targetC < 10) {
             const idx = targetR * 10 + targetC;
-            gridEl.children[idx].classList.add('hovered');
+            if (gridEl.children[idx]) {
+              gridEl.children[idx].classList.add('hovered');
+            }
           }
         }
       }
@@ -249,7 +244,7 @@ game_html = r"""
     const piece = currentPieces[draggedPieceIndex];
     if (!piece) return;
 
-    // Kiểm tra xem vị trí đặt khối có hợp lệ hay không
+    // Kiểm tra không gian trống hợp lệ
     for (let pr = 0; pr < piece.length; pr++) {
       for (let pc = 0; pc < piece[pr].length; pc++) {
         if (piece[pr][pc]) {
@@ -257,13 +252,13 @@ game_html = r"""
           const targetC = c + pc;
           if (targetR >= 10 || targetC >= 10 || board[targetR][targetC] === 1) {
             drawBoard();
-            return; // Trùng lặp hoặc vượt biên -> Hủy đặt khối
+            return; // Vị trí không hợp lệ -> Hủy bỏ lệnh thả
           }
         }
       }
     }
 
-    // Ghi nhận khối vào bảng
+    // Xác nhận ghi dữ liệu khối vào bảng
     for (let pr = 0; pr < piece.length; pr++) {
       for (let pc = 0; pc < piece[pr].length; pc++) {
         if (piece[pr][pc]) {
@@ -272,7 +267,6 @@ game_html = r"""
       }
     }
 
-    // Làm mờ khối đã đặt
     currentPieces[draggedPieceIndex] = null;
     const pieceDiv = piecesEl.querySelector(`[data-index="${draggedPieceIndex}"]`);
     if (pieceDiv) pieceDiv.style.opacity = '0.15';
@@ -280,11 +274,13 @@ game_html = r"""
     checkLines();
     drawBoard();
 
+    // Hồi lại 3 khối mới khi đã dùng hết
     if (currentPieces.every(p => p === null)) {
       spawnPieces();
     }
   }
 
+  // Tính điểm khi xếp đầy hàng ngang / cột dọc
   function checkLines() {
     let rowsToClear = [];
     let colsToClear = [];
@@ -304,7 +300,7 @@ game_html = r"""
       board[r] = Array(10).fill(0);
       score += 10;
     });
-colsToClear.forEach(c => {
+    colsToClear.forEach(c => {
 for (let r = 0; r < 10; r++) board[r][c] = 0;
 score += 10;
 });
@@ -313,3 +309,4 @@ scoreEl.innerText = score;
 initBoard();
 spawnPieces();
 """
+

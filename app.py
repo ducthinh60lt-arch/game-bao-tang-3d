@@ -280,36 +280,5 @@ game_html = r"""
       }
 
       // Vượt ống ghi điểm mượt
-if (!p.passed && p.x + pipeWidth < bird.x) {
-p.passed = true;
-score++;
-scoreEl.innerText = score;
-}
-if (p.x + pipeWidth < -10) {
-pipes.splice(i, 1);
-}
-}
-requestAnimationFrame(gameLoop);
-}
-// Hàm bổ trợ check va chạm hình tròn và hình khối chữ nhật siêu chuẩn xác
-function checkCircleRectCollision(cx, cy, radius, rx, ry, rw, rh) {
-let closestX = Math.max(rx, Math.min(cx, rx + rw));
-let closestY = Math.max(ry, Math.min(cy, ry + rh));
-let distanceX = cx - closestX;
-let distanceY = cy - closestY;
-let distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
-return distanceSquared < (radius * radius);
-}
-// Hàm alias tránh trùng lặp kiểm tra ống dưới
-function SherwoodCollision(cx, cy, radius, rx, ry, rw, rh) {
-return checkCircleRectCollision(cx, cy, radius, rx, ry, rw, rh);
-}
-function gameOver() {
-gameRunning = false;
-document.querySelector('#start-screen .overlay-title').innerText = "GAME OVER! SCORE: " + score;
-document.querySelector('#start-screen .btn-main').innerText = "THỬ LẠI";
-startScreen.style.display = 'flex';
-}
-"""
 components.html(game_html, height=540, scrolling=False)
 

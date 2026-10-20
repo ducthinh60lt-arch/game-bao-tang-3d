@@ -278,6 +278,5 @@ gameRunning = false;
 document.querySelector('#start-screen .overlay-title').innerText = "SCORE KỶ LỤC: " + score;
 document.querySelector('#start-screen .btn-main').innerText = "THỬ LẠI NGAY";
 startScreen.style.display = 'flex';
-}
-"""
+
 components.html(game_html, height=540, scrolling=False)

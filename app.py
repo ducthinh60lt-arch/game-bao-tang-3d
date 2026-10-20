@@ -309,4 +309,4 @@ scoreEl.innerText = score;
 initBoard();
 spawnPieces();
 """
-
+components.html(game_html, height=620, scrolling=False)

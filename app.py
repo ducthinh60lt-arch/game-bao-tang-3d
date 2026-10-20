@@ -8,22 +8,22 @@ st.set_page_config(
     layout="centered",
 )
 
-st.title("🐦 Flappy Bird: Thung Lũng Đại Ngàn")
+st.title("🐦 Flappy Bird: Thung Lũng Đại Ngàn (Đồ Họa HD)")
 st.markdown(
     "**Cách chơi:** \n"
-    "1. Bấm nút **BẮT ĐẦU CHƠI** ở màn hình mở đầu để bắt đầu trận đấu.\n"
+    "1. Bấm nút **BẮT ĐẦU CHƠI** ở màn hình mở đầu để nhập cuộc.\n"
     "2. **Click chuột trái vào bất kỳ vị trí nào trên khung game** để điều khiển chú chim bay lên (Có tiếng bíp khi nhảy).\n"
-    "3. Né tránh các thân cây cổ thụ để ghi điểm số kỷ lục!"
+    "3. Né tránh các đường ống nước cây cổ thụ để ghi điểm số kỷ lục!"
 )
 
-# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas tích hợp trọn gói đã SỬA LỖI VẼ
+# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas tích hợp trọn gói đã sửa sạch lỗi dấu nháy ở đuôi
 game_html = r"""
 <!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Flappy Bird Đại Ngàn</title>
+<title>Flappy Bird Đại Ngàn 4K</title>
 <style>
   body { margin: 0; background: #0f172a; color: #fff; font-family: system-ui, sans-serif; text-align: center; user-select: none; padding-top: 10px; }
   #container { max-width: 400px; margin: 0 auto; background: #1e293b; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); position: relative; overflow: hidden; height: 530px; }
@@ -119,7 +119,6 @@ game_html = r"""
 
   // HÀM VẼ PHÔNG NỀN RỪNG XANH ĐA TẦNG & MÂY HD
   function drawBeautifulForestScene() {
-    // 1. Gradient bầu trời từ xanh ngọc xuống vàng nắng ấm
     let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     skyGrad.addColorStop(0, '#2b8a94');
     skyGrad.addColorStop(0.4, '#4ec0ca');
@@ -128,11 +127,9 @@ game_html = r"""
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Vẽ các cụm mây HD bồng bềnh đổ bóng mịn
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     drawCloud(70, 90, 22); drawCloud(280, 60, 28);
 
-    // 3. TẦNG RỪNG XA (Màu xanh lam nhạt mờ ảo phía đường chân trời)
     ctx.fillStyle = '#489da6';
     ctx.beginPath();
     ctx.moveTo(0, canvas.height);
@@ -147,7 +144,6 @@ game_html = r"""
       ctx.beginPath(); ctx.arc(i, canvas.height - 85, 12, 0, Math.PI, true); ctx.fill();
     }
 
-    // 4. TẦNG RỪNG GẦN (Màu xanh lục đậm hơn, tạo chiều sâu thung lũng rộng mở)
     ctx.fillStyle = '#337146';
     ctx.beginPath();
     ctx.moveTo(0, canvas.height);
@@ -261,7 +257,7 @@ game_html = r"""
       if (p.x + pipeWidth + 40 < 0) pipes.splice(i, 1);
     }
 
-    // VẼ CHÚ CHIM FLAPPY BIRD CHUẨN VECTOR SẮC NÉT (ĐÃ FIX LỖI HÀM VẼ CÁNH CHIM)
+    // VẼ CHÚ CHIM FLAPPY BIRD CHUẨN VECTOR SẮC NÉT
     ctx.save();
     let angle = bird.velocity * 0.08;
     ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2);
@@ -272,11 +268,12 @@ game_html = r"""
     birdGrad.addColorStop(0.5, '#fdd835');
     birdGrad.addColorStop(1, '#f4511e'); 
     ctx.fillStyle = birdGrad;
-ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
-ctx.strokeStyle = '#212121'; ctx.lineWidth = 1.5; ctx.stroke();
-ctx.fillStyle = '#fff';
-ctx.beginPath(); ctx.arc(5, -4, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#212121'; ctx.lineWidth = 1.5; ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(5, -4, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#000';
 ctx.beginPath(); ctx.arc(6, -4, 2, 0, Math.PI * 2); ctx.fill();
 ctx.fillStyle = '#fff';
 ctx.beginPath(); ctx.arc(5, -5, 0.8, 0, Math.PI * 2); ctx.fill();
@@ -284,7 +281,6 @@ let beakGrad = ctx.createLinearGradient(6, 0, 16, 0);
 beakGrad.addColorStop(0, '#ff7043'); beakGrad.addColorStop(1, '#d84315');
 ctx.fillStyle = beakGrad;
 ctx.beginPath(); ctx.moveTo(7, -2); ctx.lineTo(16, 1); ctx.lineTo(5, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
-// SỬA LỖI TẠI ĐÂY: Dùng hàm vẽ hình tròn truyền thống cực kỳ an toàn cho cánh chim
 ctx.fillStyle = '#fff9c4';
 ctx.beginPath();
 ctx.arc(-6, 2, 5, 0, Math.PI * 2);

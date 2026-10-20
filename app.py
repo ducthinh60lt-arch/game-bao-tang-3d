@@ -8,27 +8,27 @@ st.set_page_config(
     layout="centered",
 )
 
-st.title("🐦 Flappy Bird: Thung Lũng Đại Ngàn (Đồ Họa HD)")
+st.title("🐦 Flappy Bird: Thung Lũng Đại Ngàn")
 st.markdown(
     "**Cách chơi:** \n"
     "1. Bấm nút **BẮT ĐẦU CHƠI** ở màn hình mở đầu để bắt đầu trận đấu.\n"
     "2. **Click chuột trái vào bất kỳ vị trí nào trên khung game** để điều khiển chú chim bay lên (Có tiếng bíp khi nhảy).\n"
-    "3. Né tránh các đường ống nước cây cổ thụ để ghi điểm số kỷ lục!"
+    "3. Né tránh các thân cây cổ thụ để ghi điểm số kỷ lục!"
 )
 
-# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas tích hợp trọn gói phông nền Rừng cổ thụ
+# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas tích hợp trọn gói đã SỬA LỖI VẼ
 game_html = r"""
 <!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Flappy Bird Đại Ngàn 4K</title>
+<title>Flappy Bird Đại Ngàn</title>
 <style>
   body { margin: 0; background: #0f172a; color: #fff; font-family: system-ui, sans-serif; text-align: center; user-select: none; padding-top: 10px; }
   #container { max-width: 400px; margin: 0 auto; background: #1e293b; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); position: relative; overflow: hidden; height: 530px; }
   #header-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: center; align-items: center; z-index: 10; }
-  #score-board { font-size: 38px; font-weight: 900; color: #fff; text-shadow: 2px 2px 8px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; font-family: 'Arial Black', sans-serif; }
+  #score-board { font-size: 38px; font-weight: 900; color: #fff; text-shadow: 2px 2px 8px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, -1px 1px 0 #000; font-family: 'Arial Black', sans-serif; }
   canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
   
   /* Giao diện màn hình mở đầu mượt mà */
@@ -141,7 +141,7 @@ game_html = r"""
     ctx.lineTo(canvas.width, canvas.height);
     ctx.closePath();
     ctx.fill();
-    // Tạo đỉnh ngọn cây rừng xa nhấp nhô
+    
     ctx.fillStyle = '#3f919a';
     for (let i = 0; i < canvas.width; i += 25) {
       ctx.beginPath(); ctx.arc(i, canvas.height - 85, 12, 0, Math.PI, true); ctx.fill();
@@ -156,7 +156,7 @@ game_html = r"""
     ctx.lineTo(canvas.width, canvas.height);
     ctx.closePath();
     ctx.fill();
-    // Tạo các bụi tán lá cây rừng gần đan xen chuyển động nhẹ theo frame
+    
     ctx.fillStyle = '#2b633c';
     let offset = (frameCount * 0.3) % 20;
     for (let i = -20; i < canvas.width + 20; i += 20) {
@@ -220,7 +220,6 @@ game_html = r"""
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
 
-    // GAME OVER nếu chạm hẳn đáy hoặc trần nhà canvas toàn màn hình
     if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
       gameOver();
       return;
@@ -262,19 +261,17 @@ game_html = r"""
       if (p.x + pipeWidth + 40 < 0) pipes.splice(i, 1);
     }
 
-    // VẼ CHÚ CHIM FLAPPY BIRD CHUẨN VECTOR SẮC NÉT
+    // VẼ CHÚ CHIM FLAPPY BIRD CHUẨN VECTOR SẮC NÉT (ĐÃ FIX LỖI HÀM VẼ CÁNH CHIM)
     ctx.save();
     let angle = bird.velocity * 0.08;
     ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2);
     ctx.rotate(Math.max(-0.2, Math.min(0.5, angle)));
 
     let birdGrad = ctx.createRadialGradient(-2, -2, 2, 0, 0, bird.width/2);
-et birdGrad = ctx.createRadialGradient(-2, -2, 2, 0, 0, bird.width/2);
-
-birdGrad.addColorStop(0, '#fff176');
-birdGrad.addColorStop(0.5, '#fdd835');
-birdGrad.addColorStop(1, '#f4511e');
-ctx.fillStyle = birdGrad;
+    birdGrad.addColorStop(0, '#fff176'); 
+    birdGrad.addColorStop(0.5, '#fdd835');
+    birdGrad.addColorStop(1, '#f4511e'); 
+    ctx.fillStyle = birdGrad;
 ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
 ctx.strokeStyle = '#212121'; ctx.lineWidth = 1.5; ctx.stroke();
 ctx.fillStyle = '#fff';
@@ -287,12 +284,15 @@ let beakGrad = ctx.createLinearGradient(6, 0, 16, 0);
 beakGrad.addColorStop(0, '#ff7043'); beakGrad.addColorStop(1, '#d84315');
 ctx.fillStyle = beakGrad;
 ctx.beginPath(); ctx.moveTo(7, -2); ctx.lineTo(16, 1); ctx.lineTo(5, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+// SỬA LỖI TẠI ĐÂY: Dùng hàm vẽ hình tròn truyền thống cực kỳ an toàn cho cánh chim
 ctx.fillStyle = '#fff9c4';
-ctx.beginPath(); ctx.ellipse(-6, 2, 6, 4, Math.PI/4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+ctx.beginPath();
+ctx.arc(-6, 2, 5, 0, Math.PI * 2);
+ctx.fill();
+ctx.stroke();
 ctx.restore();
 requestAnimationFrame(gameLoop);
 }
-// Hàm hiển thị màn hình báo thua cuộc
 function gameOver() {
 gameRunning = false;
 document.querySelector('#start-screen .overlay-title').innerText = "SCORE KỶ LỤC: " + score;

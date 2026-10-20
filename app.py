@@ -1,7 +1,6 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-# 1. Cấu hình trang Streamlit
 st.set_page_config(
     page_title="Siêu Game Xếp Khối Màu - Block Puzzle Pro",
     page_icon="🟩",
@@ -14,7 +13,6 @@ st.markdown(
     "di chuyển đến vị trí mong muốn trên bảng 10x10, sau đó **THẢ CHUỘT PHẢI** để khối rơi xuống!"
 )
 
-# 2. Trình phát nhạc nền Spotify
 st.markdown("### 🎵 Nhạc nền phát kèm: Great Little Things")
 components.iframe(
     src="https://spotify.com",
@@ -22,7 +20,6 @@ components.iframe(
     scrolling=False
 )
 
-# 3. Mã nguồn Game HTML5/JS xử lý kéo thả Chuột phải
 game_html = r"""
 <!doctype html>
 <html lang="vi">

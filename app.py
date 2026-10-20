@@ -8,41 +8,38 @@ st.set_page_config(
     layout="centered",
 )
 
-st.title("🐦 Flappy Bird: Đại Ngàn Kỳ Vĩ")
+st.title("🐦 Game Flappy Bird: Vượt Rừng Cổ Thụ")
 st.markdown(
-    "**Cách chơi:** \n"
-    "1. Bấm nút **BẮT ĐẦU CHƠI** để nhập cuộc.\n"
-    "2. **Click chuột trái vào bất kỳ vị trí nào trên khung game** để điều khiển chú chim bay lên (Có tiếng bíp khi nhảy).\n"
-    "3. Bản này đã **loại bỏ hoàn toàn dải đất/cỏ phía dưới**, giúp không gian bay rộng mở thênh thang!"
+    "**Cập nhật mới:** Đã bổ sung thêm **dải cỏ xanh mướt sinh động** ở phía dưới mặt đất theo đúng phong cách game gốc!"
 )
 
-# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas (Đã xóa thảm cỏ và nền đất ở đáy)
+# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas phiên bản CÓ CỎ PHÍA DƯỚI
 game_html = r"""
 <!doctype html>
 <html lang="vi">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Flappy Bird Đại Ngàn</title>
+<title>Flappy Bird Cây Cổ Thụ</title>
 <style>
   body { margin: 0; background: #0f172a; color: #fff; font-family: system-ui, sans-serif; text-align: center; user-select: none; padding-top: 10px; }
-  #container { max-width: 400px; margin: 0 auto; background: #1e293b; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); position: relative; overflow: hidden; height: 530px; }
+  #container { max-width: 400px; margin: 0 auto; background: #4ec0ca; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; overflow: hidden; height: 530px; }
   #header-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: center; align-items: center; z-index: 10; }
-  #score-board { font-size: 38px; font-weight: 900; color: #fff; text-shadow: 2px 2px 8px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; font-family: 'Arial Black', sans-serif; }
+  #score-board { font-size: 32px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
   canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
   
-  /* Giao diện màn hình mở đầu mượt mà */
-  .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #4ec0ca, #2f9ea8); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-  .overlay-title { font-size: 34px; font-weight: 900; color: #fff; margin-bottom: 25px; text-shadow: 3px 3px 0px #1e3a3d; letter-spacing: 2px; font-family: 'Arial Black', sans-serif; }
-  .btn-main { width: 85%; padding: 14px; font-size: 18px; font-weight: bold; color: white; background: linear-gradient(to bottom, #f59e0b, #d97706); border: 2px solid #fff; border-radius: 12px; cursor: pointer; transition: 0.2s; margin-top: 10px; box-shadow: 0 6px 15px rgba(0,0,0,0.3); text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
-  .btn-main:hover { transform: scale(1.04); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+  /* Giao diện màn hình mở đầu và thông báo thua cuộc */
+  .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #4ec0ca; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
+  .overlay-title { font-size: 32px; font-weight: bold; color: #fff; margin-bottom: 25px; text-shadow: 2px 2px 0px #000; letter-spacing: 1px; }
+  .btn-main { width: 85%; padding: 12px; font-size: 18px; font-weight: bold; color: white; background: #f59e0b; border: 2px solid #fff; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
+  .btn-main:hover { background: #d97706; transform: scale(1.03); }
 </style>
 </head>
 <body>
 
 <div id="container">
   <div id="start-screen" class="overlay">
-    <div class="overlay-title">FLAPPY TREE HD</div>
+    <div class="overlay-title">FLAPPY BIRD TREE</div>
     <button class="btn-main" onclick="startGame()">BẮT ĐẦU CHƠI</button>
   </div>
 
@@ -62,40 +59,47 @@ game_html = r"""
   let score = 0;
   let audioCtx = null;
 
-  // Cấu hình vật lý bản dễ chơi lơ lửng
+  // Cấu hình vật lý bản dễ (chim lơ lửng, rơi chậm)
   const bird = {
-    x: 70,
+    x: 60,
     y: 200,
-    width: 28,     
-    height: 22,    
-    gravity: 0.15,  
+    width: 26,     
+    height: 20,    
+    gravity: 0.16,  
     velocity: 0,
-    jump: -3.7      
+    jump: -3.8      
   };
 
   let pipes = [];
-  const pipeWidth = 58;   
+  const pipeWidth = 55;   
   const pipeGap = 175;    
-  const pipeSpeed = 1.4;  
+  const pipeSpeed = 1.5;  
   let frameCount = 0;
 
-  // ĐÃ ĐỔI: Đặt chiều cao mặt đất về bằng 0 để chim tận dụng hết đáy màn hình
-  const groundHeight = 0; 
-
-  // Hiệu ứng âm thanh bíp khi nhảy
+  // Bộ tổng hợp âm thanh tiếng bíp đập cánh nhảy của trình duyệt
   function playJumpSound() {
     try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
       const oscillator = audioCtx.createOscillator();
       const gainNode = audioCtx.createGain();
-      oscillator.connect(gainNode); gainNode.connect(audioCtx.destination);
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
       oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(420, audioCtx.currentTime); 
-      oscillator.frequency.exponentialRampToValueAtTime(850, audioCtx.currentTime + 0.08);
-      gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime); 
+      oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); 
+      oscillator.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.08);
+      
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime); 
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-      oscillator.start(); oscillator.stop(audioCtx.currentTime + 0.08);
-    } catch (e) {}
+      
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.08);
+    } catch (e) {
+      console.log(e);
+    }
   }
 
   function startGame() {
@@ -120,96 +124,64 @@ game_html = r"""
     frameCount = 0;
   }
 
-  // HÀM VẼ TOÀN BỘ BỐI CẢNH ĐỒ HỌA HD VECTOR LUNG LINH
-  function drawBeautifulScene() {
-    let skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    skyGrad.addColorStop(0, '#3ba8b3');
-    skyGrad.addColorStop(0.4, '#4ec0ca');
-    skyGrad.addColorStop(0.7, '#a9e3e8');
-    skyGrad.addColorStop(1, '#fff6d1'); 
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
-    drawCloud(80, 100, 25); drawCloud(260, 70, 30);
-
-    ctx.fillStyle = '#3ca3ad';
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height);
-    ctx.quadraticCurveTo(80, canvas.height - 50, 180, canvas.height - 15);
-    ctx.quadraticCurveTo(290, canvas.height - 60, canvas.width, canvas.height);
-    ctx.lineTo(canvas.width, canvas.height);
-    ctx.lineTo(0, canvas.height);
-    ctx.fill();
-  }
-
-  function drawCloud(x, y, r) {
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.arc(x + r * 0.6, y - r * 0.3, r * 0.8, 0, Math.PI * 2);
-    ctx.arc(x + r * 1.2, y, r * 0.6, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // HÀM VẼ CÂY CỔ THỤ ĐA TẦNG ĐỔ BÓNG 3D
-  function drawPremiumTree(px, py, pw, ph, isTop) {
-    ctx.save();
-    let trunkGrad = ctx.createLinearGradient(px, 0, px + pw, 0);
-    trunkGrad.addColorStop(0, '#4a3329'); 
-    trunkGrad.addColorStop(0.2, '#6d4c41');
-    trunkGrad.addColorStop(0.5, '#8d6e63'); 
-    trunkGrad.addColorStop(0.8, '#5d4037');
-    trunkGrad.addColorStop(1, '#3e2723'); 
-
-    ctx.fillStyle = trunkGrad;
-    ctx.fillRect(px, py, pw, ph);
-
-    ctx.fillStyle = 'rgba(40, 20, 10, 0.15)';
-    ctx.fillRect(px + pw * 0.25, py, 3, ph);
-    ctx.fillRect(px + pw * 0.65, py, 2, ph);
-
-    let leafY = isTop ? py + ph : py;
-    
-    ctx.fillStyle = '#1b4314'; 
-    ctx.beginPath(); ctx.arc(px + pw/2, leafY, 36, 0, Math.PI * 2); ctx.fill();
-
-    let leafGrad = ctx.createRadialGradient(px + pw/2, leafY - 5, 5, px + pw/2, leafY, 32);
-    leafGrad.addColorStop(0, '#4caf50'); 
-    leafGrad.addColorStop(0.7, '#2e7d32');
-    leafGrad.addColorStop(1, '#1b5e20'); 
-    ctx.fillStyle = leafGrad;
-    ctx.beginPath(); ctx.arc(px + pw/2, leafY, 32, 0, Math.PI * 2); ctx.fill();
-
-    ctx.fillStyle = '#81c784';
-    ctx.beginPath();
-    ctx.arc(px + pw/2 - 8, leafY - 12, 14, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.restore();
-  }
-
   function gameLoop() {
     if (!gameRunning) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    drawBeautifulScene();
 
+    // Tính toán cơ chế vật lý rơi tự do cho chú chim
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
 
-    // GAME OVER nếu chạm đáy hoặc trần nhà canvas
-    if (bird.y + bird.height >= canvas.height || bird.y <= 0) {
+    // Render đồ họa bầu trời xanh nền
+    ctx.fillStyle = '#4ec0ca';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Render đồ họa chú chim gốc (Thân vàng, mỏ đỏ, mắt trắng)
+    ctx.fillStyle = '#f3da3b'; 
+    ctx.beginPath();
+    ctx.arc(bird.x + bird.width/2, bird.y + bird.height/2, bird.width/2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(bird.x + bird.width/2 + 5, bird.y + bird.height/2 - 4, 6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.arc(bird.x + bird.width/2 + 7, bird.y + bird.height/2 - 4, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#f75331';
+    ctx.beginPath();
+    ctx.moveTo(bird.x + bird.width - 2, bird.y + bird.height/2 - 4);
+    ctx.lineTo(bird.x + bird.width + 8, bird.y + bird.height/2);
+    ctx.lineTo(bird.x + bird.width - 2, bird.y + bird.height/2 + 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Game Over nếu đập trúng phần ĐẤT cỏ phía dưới (hạ ranh giới xuống mức nền cỏ cao 60px)
+    if (bird.y + bird.height >= canvas.height - 60 || bird.y <= 0) {
       gameOver();
       return;
     }
 
-    if (frameCount % 135 === 0) {
-      const minHeight = 60;
-      const maxHeight = canvas.height - pipeGap - minHeight;
+    // Thiết lập tần suất xuất hiện rặng cây
+    if (frameCount % 130 === 0) {
+      const minHeight = 40;
+      const maxHeight = (canvas.height - 60) - pipeGap - minHeight;
       const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
       
-      pipes.push({ x: canvas.width, top: topHeight, bottom: canvas.height - topHeight - pipeGap, passed: false });
+      pipes.push({
+        x: canvas.width,
+        top: topHeight,
+        bottom: (canvas.height - 60) - topHeight - pipeGap,
+        passed: false
+      });
     }
     frameCount++;
 
@@ -217,15 +189,45 @@ game_html = r"""
       let p = pipes[i];
       p.x -= pipeSpeed;
 
-      drawPremiumTree(p.x, 0, pipeWidth, p.top, true);
+      // 1. CÂY CỔ THỤ PHÍA TRÊN
+      ctx.fillStyle = '#5c4033';
+      ctx.fillRect(p.x, 0, pipeWidth, p.top);
+      ctx.strokeStyle = '#3e2723';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(p.x, -2, pipeWidth, p.top + 2);
+      
+      ctx.fillStyle = '#4e3629';
+      ctx.fillRect(p.x + 12, 0, 4, p.top);
+      ctx.fillRect(p.x + 35, 0, 4, p.top);
+      
+      ctx.fillStyle = '#2e5a1c';
+      ctx.beginPath();
+      ctx.arc(p.x + pipeWidth/2, p.top - 2, 34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#1b3411';
+      ctx.stroke();
 
-      let bottomY = canvas.height - p.bottom;
-      drawPremiumTree(p.x, bottomY, pipeWidth, p.bottom, false);
+      // 2. CÂY CỔ THỤ PHÍA DƯỚI
+      let bottomY = (canvas.height - 60) - p.bottom;
+      ctx.fillStyle = '#5c4033';
+      ctx.fillRect(p.x, bottomY, pipeWidth, p.bottom);
+      ctx.strokeRect(p.x, bottomY, pipeWidth, p.bottom + 2);
+      
+      ctx.fillStyle = '#4e3629';
+      ctx.fillRect(p.x + 12, bottomY, 4, p.bottom);
+      ctx.fillRect(p.x + 35, bottomY, 4, p.bottom);
+      
+      ctx.fillStyle = '#2e5a1c';
+      ctx.beginPath();
+      ctx.arc(p.x + pipeWidth/2, bottomY + 2, 34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
 
+      // Thuật toán quét va chạm
       if (
-        bird.x + 3 < p.x + pipeWidth &&
-        bird.x + bird.width - 3 > p.x &&
-        (bird.y + 3 < p.top || bird.y + bird.height - 3 > bottomY)
+        bird.x + 2 < p.x + pipeWidth &&
+        bird.x + bird.width - 2 > p.x &&
+        (bird.y + 2 < p.top || bird.y + bird.height - 2 > bottomY)
       ) {
         gameOver();
         return;
@@ -237,46 +239,42 @@ game_html = r"""
         scoreEl.innerText = score;
       }
 
-      if (p.x + pipeWidth + 40 < 0) pipes.splice(i, 1);
+      if (p.x + pipeWidth + 20 < 0) {
+        pipes.splice(i, 1);
+      }
     }
 
-    // VẼ CHÚ CHIM FLAPPY BIRD CHUẨN VECTOR
-    ctx.save();
-    let angle = bird.velocity * 0.08;
-    ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2);
-    ctx.rotate(Math.max(-0.2, Math.min(0.5, angle)));
+    // NÂNG CẤP: VẼ ĐẤT VÀ THÊM DẢI CỎ XANH MƯỚT CHUYỂN ĐỘNG PHÍA DƯỚI CÙNG
+    // Vẽ nền đất màu cát vàng
+    ctx.fillStyle = '#ded895';
+    ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
 
-    let birdGrad = ctx.createRadialGradient(-2, -2, 2, 0, 0, bird.width/2);
-    birdGrad.addColorStop(0, '#fff176'); 
-    birdGrad.addColorStop(0.5, '#fdd835');
-    birdGrad.addColorStop(1, '#f4511e'); 
-    ctx.fillStyle = birdGrad;
-    ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#212121'; ctx.lineWidth = 1.5; ctx.stroke();
+    // Vẽ các bụi cỏ hình vòng cung lặp đi lặp lại ở đường chân mút đất
+    ctx.fillStyle = '#73bf2e';
+    for (let i = 0; i < canvas.width + 20; i += 12) {
+      ctx.beginPath();
+      ctx.arc(i - (frameCount * pipeSpeed % 12), canvas.height - 60, 6, 0, Math.PI, true);
+      ctx.fill();
+    }
+    
+    // Thêm một đường sọc màu xanh sáng trên đỉnh cỏ để tạo điểm nhấn tách biệt
+    ctx.fillStyle = '#9ece37';
+    ctx.fillRect(0, canvas.height - 63, canvas.width, 3);
 
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(5, -4, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.arc(6, -4, 2, 0, Math.PI * 2); ctx.fill(); 
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(5, -5, 0.8, 0, Math.PI * 2); ctx.fill(); 
+    requestAnimationFrame(gameLoop);
+  }
 
-    let beakGrad = ctx.createLinearGradient(6, 0, 16, 0);
-    beakGrad.addColorStop(0, '#ff7043'); beakGrad.addColorStop(1, '#d84315');
-    ctx.fillStyle = beakGrad;
-    ctx.beginPath(); ctx.moveTo(7, -2); ctx.lineTo(16, 1); ctx.lineTo(5, 5); ctx.closePath(); ctx.fill(); ctx.stroke();
+  function gameOver() {
+    gameRunning = false;
+    document.querySelector('#start-screen .overlay-title').innerText = "GAME OVER! SCORE: " + score;
+    document.querySelector('#start-screen .btn-main').innerText = "THỬ LẠI";
+    startScreen.style.display = 'flex';
+  }
+</script>
 
-    ctx.fillStyle = '#fff9c4';
-    ctx.beginPath(); ctx.ellipse(-6, 2, 6, 4, Math.PI/4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+</body>
+</html>
+"""
 
-    ctx.restore();
-
-requestAnimationFrame(gameLoop);
-}
-function gameOver() {
-gameRunning = false;
-document.querySelector('#start-screen .overlay-title').innerText = "SCORE KỶ LỤC: " + score;
-document.querySelector('#start-screen .btn-main').innerText = "THỬ LẠI NGAY";
-startScreen.style.display = 'flex';
-
+# 3. Kết xuất giao diện lên ứng dụng Streamlit
 components.html(game_html, height=540, scrolling=False)

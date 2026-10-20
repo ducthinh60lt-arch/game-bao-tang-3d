@@ -1,20 +1,22 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
+# 1. Cấu hình trang Streamlit
 st.set_page_config(
     page_title="Chơi Flappy Bird Online — Miễn Phí, Không Cần Tải",
     page_icon="🐦",
     layout="centered",
 )
 
-st.title("🐦 Siêu Game Flappy Bird Online")
+st.title("🐦 Siêu Game Flappy Bird Dễ Nhất")
 st.markdown(
     "**Cách chơi:** \n"
     "1. Bấm nút **BẮT ĐẦU CHƠI** ở màn hình mở đầu để bắt đầu trận đấu.\n"
-    "2. **Click chuột trái vào bất kỳ vị trí nào trên khung game** để điều khiển chú chim bay lên.\n"
-    "3. Né tránh các đường ống nước màu xanh lá để ghi điểm số kỷ lục!"
+    "2. **Click chuột trái vào bất kỳ vị trí nào trên khung game** để điều khiển chú chim bay lên (Có tiếng bíp khi nhảy!).\n"
+    "3. Bản này đã được điều chỉnh **Tốc độ chậm hơn - Khe hở rộng hơn** giúp bạn dễ dàng ghi điểm số kỷ lục!"
 )
 
+# 2. Mã nguồn ứng dụng Game Flappy Bird phiên bản DỄ + CÓ ÂM THANH NHẢY + CÓ GIAO DIỆN MỞ ĐẦU
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -28,6 +30,8 @@ game_html = r"""
   #header-bar { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: center; align-items: center; z-index: 10; }
   #score-board { font-size: 32px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px rgba(0,0,0,0.6); }
   canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+  
+  /* Giao diện màn hình mở đầu & Màn hình báo thua */
   .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #4ec0ca; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
   .overlay-title { font-size: 32px; font-weight: bold; color: #fff; margin-bottom: 25px; text-shadow: 2px 2px 0px #000; letter-spacing: 1px; }
   .btn-main { width: 85%; padding: 12px; font-size: 18px; font-weight: bold; color: white; background: #f59e0b; border: 2px solid #fff; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
@@ -37,6 +41,7 @@ game_html = r"""
 <body>
 
 <div id="container">
+  <!-- GIAO DIỆN MỞ ĐẦU BAN ĐẦU -->
   <div id="start-screen" class="overlay">
     <div class="overlay-title">FLAPPY BIRD PRO</div>
     <button class="btn-main" onclick="startGame()">BẮT ĐẦU CHƠI</button>
@@ -56,22 +61,52 @@ game_html = r"""
 
   let gameRunning = false;
   let score = 0;
+  let audioCtx = null; // Khởi tạo bộ sinh âm thanh của trình duyệt
 
+  // Thuộc tính vật lý cấu trúc chú chim Flappy Bird
   const bird = {
     x: 60,
     y: 200,
     width: 34,
     height: 24,
-    gravity: 0.24,
+    gravity: 0.22, // Giảm trọng lực một chút để rơi chậm hơn
     velocity: 0,
-    jump: -5.2
+    jump: -4.8     // Lực nhảy vừa phải dễ kiểm soát
   };
 
   let pipes = [];
   const pipeWidth = 62;
-  const pipeGap = 125;
-  const pipeSpeed = 2.2;
+  
+  // ĐIỀU CHỈNH ĐỘ KHÓ (LÀM GAME DỄ HƠN)
+  const pipeGap = 150;    // TĂNG KHE HỞ (Cũ là 125) -> Chim cực dễ chui qua
+  const pipeSpeed = 1.8;  // GIẢM TỐC ĐỘ (Cũ là 2.2) -> Ống nước lao tới chậm hơn
   let frameCount = 0;
+
+  // Hàm tạo tiếng bíp tự động khi nhảy không cần file mp3 bên ngoài
+  function playJumpSound() {
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(400, audioCtx.currentTime); // Tần số âm thanh nhảy
+      oscillator.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // Độ to âm lượng
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {
+      console.log("Trình duyệt chặn hoặc không hỗ trợ âm thanh: ", e);
+    }
+  }
 
   function startGame() {
     startScreen.style.display = 'none';
@@ -80,9 +115,11 @@ game_html = r"""
     gameLoop();
   }
 
+  // Click vào vùng màn hình để vỗ cánh bay lên + Phát âm thanh
   canvas.addEventListener('mousedown', () => {
     if (!gameRunning) return;
     bird.velocity = bird.jump;
+    playJumpSound(); // Kích hoạt âm thanh khi nhấn chuột
   });
 
   function resetGame() {
@@ -102,7 +139,7 @@ game_html = r"""
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
 
-    // Thân chim
+    // Render đồ họa Chim Flappy Bird
     ctx.fillStyle = '#f3da3b'; 
     ctx.beginPath();
     ctx.arc(bird.x + bird.width/2, bird.y + bird.height/2, bird.width/2, 0, Math.PI * 2);
@@ -136,8 +173,9 @@ game_html = r"""
       return;
     }
 
-    if (frameCount % 95 === 0) {
-      const minHeight = 50;
+    // Tăng khoảng cách xuất hiện giữa các ống (95 lên 110 khung hình) giúp game thoáng hơn
+    if (frameCount % 110 === 0) {
+      const minHeight = 40;
       const maxHeight = canvas.height - pipeGap - minHeight;
       const topHeight = Math.floor(Math.random() * (maxHeight - minHeight + 1)) + minHeight;
       
@@ -155,9 +193,12 @@ game_html = r"""
       p.x -= pipeSpeed;
 
       ctx.fillStyle = '#73c737';
+      
+      // Vẽ ống nước phía trên
       ctx.fillRect(p.x, 0, pipeWidth, p.top);
       ctx.strokeRect(p.x, -2, pipeWidth, p.top + 2);
 
+      // Vẽ ống nước phía dưới
       ctx.fillRect(p.x, canvas.height - p.bottom, pipeWidth, p.bottom);
       ctx.strokeRect(p.x, canvas.height - p.bottom, pipeWidth, p.bottom + 2);
 

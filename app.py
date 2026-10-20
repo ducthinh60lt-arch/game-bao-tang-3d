@@ -317,5 +317,3 @@ game_html = r"""
 </body>
 </html>
 """
-
-# 4. Nhúng game vào Streamlit

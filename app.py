@@ -11,12 +11,12 @@ st.set_page_config(
 st.title("🟩 Game Xếp Khối Màu (Block Blast Pro)")
 st.markdown(
     "**Cách chơi:** \n"
-    "1. **Click chuột trái** vào một khối hình bên dưới để lựa chọn (khối sẽ đổi sang viền vàng).\n"
-    "2. **Click chuột trái** vào một ô bất kỳ trên bảng 10x10 phía trên để đặt khối hình xuống!\n"
-    "3. Xếp kín một hàng ngang hoặc cột dọc để phá khối ghi điểm."
+    "1. **Click chuột trái** vào một khối hình bên dưới để chọn (khối sẽ đổi sang viền vàng).\n"
+    "2. **Click chuột trái** vào một ô bất kỳ trên bảng 10x10 phía trên để đặt khối xuống!\n"
+    "3. Xếp kín hàng ngang hoặc dọc để nổ khối ghi điểm."
 )
 
-# 2. Mã nguồn Game HTML5/JS tích hợp Nhạc nền, Menu mở đầu và Cài đặt
+# 2. Mã nguồn ứng dụng Game tích hợp toàn diện Nhạc nền + Cài đặt + Fix Lỗi Ma Trận
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -25,12 +25,12 @@ game_html = r"""
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <style>
   body { margin: 0; background: #0f172a; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; user-select: none; padding-top: 10px; }
-  #container { max-width: 420px; margin: 0 auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; overflow: hidden; min-height: 520px; }
+  #container { max-width: 420px; margin: 0 auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; min-height: 540px; }
   
-  /* Đầu mục điểm số & Cài đặt */
+  /* Thanh đầu mục Thông số */
   #header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
   #score-board { font-size: 22px; font-weight: bold; color: #f59e0b; }
-  #btn-settings { background: #334155; border: none; color: white; font-size: 22px; cursor: pointer; padding: 5px 10px; border-radius: 6px; transition: 0.2s; }
+  #btn-settings { background: #334155; border: none; color: white; font-size: 22px; cursor: pointer; padding: 5px 12px; border-radius: 6px; transition: 0.2s; }
   #btn-settings:hover { background: #475569; }
 
   /* Bảng lưới game 10x10 */
@@ -45,29 +45,30 @@ game_html = r"""
   .piece.selected { border-color: #f59e0b; background: rgba(245, 158, 11, 0.2); box-shadow: 0 0 10px #f59e0b; }
   .p-cell { width: 14px; height: 14px; border-radius: 2px; }
   .p-cell.filled { background: #3b82f6; }
+  .p-cell.empty { background: transparent; }
 
-  /* Màn hình mở đầu & Bảng cài đặt đè lên */
-  .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
-  .overlay-title { font-size: 26px; font-weight: bold; color: #f59e0b; margin-bottom: 20px; }
+  /* Màn hình chờ mở đầu & Cửa sổ Cài đặt đè lên */
+  .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; border-radius: 16px; }
+  .overlay-title { font-size: 26px; font-weight: bold; color: #f59e0b; margin-bottom: 25px; letter-spacing: 1px; }
   
-  .setting-row { width: 80%; margin-bottom: 20px; text-align: left; }
-  .setting-label { font-size: 14px; color: #94a3b8; margin-bottom: 5px; font-weight: bold; }
+  .setting-row { width: 85%; margin-bottom: 20px; text-align: left; }
+  .setting-label { font-size: 14px; color: #94a3b8; margin-bottom: 6px; font-weight: bold; }
   
-  select { width: 100%; padding: 10px; border-radius: 6px; background: #334155; border: 2px solid #475569; color: white; font-size: 15px; outline: none; }
-  .btn-main { width: 80%; padding: 12px; font-size: 18px; font-weight: bold; color: white; background: #10b981; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+  select { width: 100%; padding: 10px; border-radius: 6px; background: #334155; border: 2px solid #475569; color: white; font-size: 15px; outline: none; cursor: pointer; }
+  .btn-main { width: 85%; padding: 12px; font-size: 18px; font-weight: bold; color: white; background: #10b981; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
   .btn-main:hover { background: #059669; }
-  .btn-close { background: #ef4444 !important; }
+  .btn-close { background: #ef4444 !important; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3) !important; }
   .btn-close:hover { background: #dc2626 !important; }
 </style>
 </head>
 <body>
 
 <div id="container">
-  <!-- MÀN HÌNH MỞ ĐẦU -->
+  <!-- MÀN HÌNH KHỞI ĐẦU CHÀO MỪNG -->
   <div id="start-screen" class="overlay">
     <div class="overlay-title">BLOCK PUZZLE PRO</div>
     <div class="setting-row">
-      <div class="setting-label">Chọn nhạc nền khởi đầu:</div>
+      <div class="setting-label">Chọn nhạc nền trước khi vào:</div>
       <select id="start-music-select">
         <option value="https://mixkit.co">Chill Game Level (Mặc định)</option>
         <option value="https://mixkit.co">Dreaming Big (Nhẹ nhàng)</option>
@@ -77,28 +78,28 @@ game_html = r"""
     <button class="btn-main" onclick="startGame()">BẮT ĐẦU CHƠI</button>
   </div>
 
-  # PANEL CÀI ĐẶT TRONG GAME
+  <!-- MENU CÀI ĐẶT TRONG LÚC CHƠI -->
   <div id="settings-screen" class="overlay" style="display: none;">
-    <div class="overlay-title">⚙️ CÀI ĐẶT</div>
+    <div class="overlay-title">⚙️ CÀI ĐẶT GAME</div>
     <div class="setting-row">
-      <div class="setting-label">Trạng thái nhạc:</div>
+      <div class="setting-label">Âm thanh / Nhạc nền:</div>
       <select id="music-toggle" onchange="toggleMusicState()">
         <option value="on">Đang Bật (On)</option>
         <option value="off">Tắt Nhạc (Off)</option>
       </select>
     </div>
     <div class="setting-row">
-      <div class="setting-label">Đổi bài hát khác:</div>
+      <div class="setting-label">Thay đổi bài hát:</div>
       <select id="game-music-select" onchange="changeTrack(this.value)">
         <option value="https://mixkit.co">Chill Game Level</option>
         <option value="https://mixkit.co">Dreaming Big</option>
         <option value="https://mixkit.co">Tech House</option>
       </select>
     </div>
-    <button class="btn-main btn-close" onclick="closeSettings()">QUAY LẠI GAME</button>
+    <button class="btn-main btn-close" onclick="closeSettings()">QUAY LẠI CHƠI</button>
   </div>
 
-  <!-- KHU VỰC GIAO DIỆN CHƠI GAME CHÍNH -->
+  <!-- KHU VỰC CHƠI GAME CHÍNH -->
   <div id="header-bar">
     <div id="score-board">Điểm số: <span id="score">0</span></div>
     <button id="btn-settings" onclick="openSettings()">⚙️</button>
@@ -107,7 +108,7 @@ game_html = r"""
   <div id="pieces"></div>
 </div>
 
-<!-- Trình phát nhạc ẩn của hệ thống -->
+<!-- Trình Audio ẩn của hệ thống -->
 <audio id="bg-audio" loop></audio>
 
 <script>
@@ -123,40 +124,34 @@ game_html = r"""
   let selectedPieceIndex = null;
   let isMusicPlaying = true;
 
-  // Ma trận cấu trúc hình khối (Đã điền số 1 và 0 chuẩn không bị lỗi cú pháp)
+  // ĐÃ FIX LỖI: Điền đầy đủ ma trận dữ liệu số 0 và 1 cho các khối hình
   const pieceTemplates = [
-    [[1]], 
-    [[1, 1]], 
-    [[1, 1, 1]], 
-    [[1, 1], [1, 1]], 
-    [[1, 0], [1, 1]], 
-    [[1, 1, 1], [0, 1, 0]]
+    [[1]],                                     // Khối đơn 1x1
+    [[1, 1]],                                  // Thanh ngang 2 ô
+    [[1, 1, 1]],                               // Thanh ngang 3 ô
+    [[1, 1], [1, 1]],                          // Khối vuông 2x2
+    [[1, 0], [1, 1]],                          // Khối chữ L nhỏ
+    [[1, 1, 1], [0, 1, 0]]                     // Khối chữ T
   ];
   let currentPieces = [];
 
-  // HÀM KHỞI ĐẦU GAME VÀ TỰ ĐỘNG BẬT NHẠC
+  // Khởi động khi nhấn nút Start và tự động kích hoạt phát nhạc
   function startGame() {
     const startSelect = document.getElementById('start-music-select');
     audioPlayer.src = startSelect.value;
     
-    // Đồng bộ danh mục bài hát ở cả 2 menu
+    // Đồng bộ trạng thái bài hát sang bảng điều khiển cài đặt bên trong
     document.getElementById('game-music-select').value = startSelect.value;
     
-    // Phát nhạc tự động ngay khi tương tác bấm nút nhập cuộc
-    audioPlayer.play().catch(err => console.log("Chặn phát nhạc tự động: ", err));
+    // Phát nhạc ngay khi có tương tác click hợp lệ đầu tiên của người dùng
+    audioPlayer.play().catch(err => console.log("Lỗi hệ thống âm thanh: ", err));
     
-    // Ẩn màn hình chào để vào game
     startScreen.style.display = 'none';
   }
 
-  // CÁC HÀM ĐIỀU KHIỂN MENU CÀI ĐẶT
-  function openSettings() {
-    settingsScreen.style.display = 'flex';
-  }
-
-  function closeSettings() {
-    settingsScreen.style.display = 'none';
-  }
+  // Quản lý cửa sổ cài đặt
+  function openSettings() { settingsScreen.style.display = 'flex'; }
+  function closeSettings() { settingsScreen.style.display = 'none'; }
 
   function toggleMusicState() {
     const state = document.getElementById('music-toggle').value;
@@ -176,7 +171,7 @@ game_html = r"""
     }
   }
 
-  // LOGIC VẬN HÀNH GAME CHÍNH (CLICK-TO-PLACE)
+  // Khởi tạo và kết xuất giao diện bảng lưới ban đầu
   function initBoard() {
     gridEl.innerHTML = '';
     for (let r = 0; r < 10; r++) {
@@ -205,6 +200,7 @@ game_html = r"""
     }
   }
 
+  // Sản sinh ngẫu nhiên đợt 3 khối hình dưới chân bảng
   function spawnPieces() {
     piecesEl.innerHTML = '';
     currentPieces = [];
@@ -224,38 +220,38 @@ game_html = r"""
       piece.forEach(row => {
         row.forEach(val => {
           const pCell = document.createElement('div');
-          pCell.className = 'p-cell' + (val ? ' filled' : '');
+          pCell.className = val ? 'p-cell filled' : 'p-cell empty';
           pieceDiv.appendChild(pCell);
         });
       });
 
       pieceDiv.addEventListener('click', () => {
         if (currentPieces[i] === null) return;
-        document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
-        selectedPieceIndex = i;
-        pieceDiv.classList.add('selected');
-      });
-
-      piecesEl.appendChild(pieceDiv);
-    }
-  }
-
-  function placePiece(r, c) {
-    if (selectedPieceIndex === null) return;
-    const piece = currentPieces[selectedPieceIndex];
-    if (!piece) return;
-
-    for (let pr = 0; pr < piece.length; pr++) {
-      for (let pc = 0; pc < piece[pr].length; pc++) {
-        if (piece[pr][pc]) {
-          const targetR = r + pr;
+document.querySelectorAll('.piece').forEach(p => p.classList.remove('selected'));
+selectedPieceIndex = i;
+pieceDiv.classList.add('selected');
+});
+piecesEl.appendChild(pieceDiv);
+}
+}
+// Logic thả khối xuống ô được click
+function placePiece(r, c) {
+if (selectedPieceIndex === null) return;
+const piece = currentPieces[selectedPieceIndex];
+if (!piece) return;
+// Quét kiểm tra va chạm vật lý / tràn biên
+for (let pr = 0; pr < piece.length; pr++) {
+for (let pc = 0; pc < piece[pr].length; pc++) {
+if (piece[pr][pc]) {
+const targetR = r + pr;
 const targetC = c + pc;
 if (targetR >= 10 || targetC >= 10 || board[targetR][targetC] === 1) {
-return;
+return; // Sai vị trí -> Không cho đặt
 }
 }
 }
 }
+// Đặt khối thành công vào ô lưới
 for (let pr = 0; pr < piece.length; pr++) {
 for (let pc = 0; pc < piece[pr].length; pc++) {
 if (piece[pr][pc]) {
@@ -263,6 +259,7 @@ board[r + pr][c + pc] = 1;
 }
 }
 }
+// Vô hiệu hóa khối vừa dùng
 currentPieces[selectedPieceIndex] = null;
 const pieceDiv = piecesEl.querySelector([data-index="${selectedPieceIndex}"]);
 if (pieceDiv) {
@@ -277,6 +274,7 @@ if (currentPieces.every(p => p === null)) {
 spawnPieces();
 }
 }
+// Xử lý nổ khối khi lấp đầy hàng dọc hoặc hàng ngang
 function checkLines() {
 let rowsToClear = [];
 let colsToClear = [];
@@ -300,7 +298,7 @@ score += 10;
 });
 scoreEl.innerText = score;
 }
-// Khởi động nạp dữ liệu bảng lúc ban đầu
+// Khởi động nạp dữ liệu ban đầu
 initBoard();
 spawnPieces();
 """

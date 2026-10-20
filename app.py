@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
+# 1. Cấu hình trang Streamlit
 st.set_page_config(
     page_title="Siêu Game Xếp Khối Màu - Block Puzzle Pro",
     page_icon="🟩",
@@ -9,10 +10,11 @@ st.set_page_config(
 
 st.title("🟩 Game Xếp Khối Màu (Block Blast Pro)")
 st.markdown(
-    "**Cách chơi mới:** **Nhấn và GIỮ CHUỘT PHẢI** vào khối hình bên dưới để kéo đi, "
-    "di chuyển đến vị trí mong muốn trên bảng 10x10, sau đó **THẢ CHUỘT PHẢI** để khối rơi xuống!"
+    "**Cách chơi:** **Nhấn và GIỮ CHUỘT PHẢI** vào một khối hình bên dưới để kéo đi, "
+    "di chuyển đến vị trí trên bảng 10x10, sau đó **THẢ CHUỘT PHẢI** để khối rơi xuống!"
 )
 
+# 2. Trình phát nhạc nền Spotify
 st.markdown("### 🎵 Nhạc nền phát kèm: Great Little Things")
 components.iframe(
     src="https://spotify.com",
@@ -20,6 +22,7 @@ components.iframe(
     scrolling=False
 )
 
+# 3. Mã nguồn Game HTML5/JS xử lý kéo thả Chuột phải chuẩn tọa độ Iframe
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -27,34 +30,34 @@ game_html = r"""
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <style>
-  body { margin: 0; background: #0f172a; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; user-select: none; }
-  #container { max-width: 450px; margin: 10px auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
-  #score-board { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #f59e0b; }
+  body { margin: 0; background: #0f172a; color: #fff; font-family: 'Segoe UI', sans-serif; text-align: center; user-select: none; padding-top: 10px; }
+  #container { max-width: 430px; margin: 0 auto; padding: 15px; background: #1e293b; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); position: relative; }
+  #score-board { font-size: 22px; font-weight: bold; margin-bottom: 15px; color: #f59e0b; }
   
-  /* Bảng game */
-  #grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: #334155; padding: 5px; border-radius: 8px; margin-bottom: 15px; }
+  /* Bảng game 10x10 */
+  #grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; background: #334155; padding: 8px; border-radius: 8px; margin-bottom: 20px; }
   .cell { aspect-ratio: 1; background: #1e293b; border-radius: 4px; transition: background 0.1s; }
-  .cell.filled { background: #3b82f6; box-shadow: inset 0 0 5px rgba(255,255,255,0.3); }
-  .cell.hovered { background: rgba(245, 158, 11, 0.4); } /* Hiệu ứng căn chỉnh khi rê khối qua */
+  .cell.filled { background: #3b82f6; box-shadow: inset 0 0 5px rgba(255,255,255,0.4); }
+  .cell.hovered { background: rgba(245, 158, 11, 0.6) !important; } /* Preview màu cam rõ khi di chuột qua */
 
   /* Khu vực chứa các khối để chọn */
-  #pieces { display: flex; justify-content: space-around; min-height: 90px; background: #334155; padding: 10px; border-radius: 8px; }
-  .piece { display: grid; gap: 1px; cursor: grab; padding: 5px; border: 2px dashed #475569; border-radius: 4px; background: rgba(15, 23, 42, 0.3); }
+  #pieces { display: flex; justify-content: space-around; min-height: 100px; background: #334155; padding: 10px; border-radius: 8px; align-items: center; }
+  .piece { display: grid; gap: 2px; cursor: grab; padding: 8px; border: 2px dashed #475569; border-radius: 6px; background: rgba(15, 23, 42, 0.4); }
   .p-cell { width: 14px; height: 14px; border-radius: 2px; }
   .p-cell.filled { background: #3b82f6; }
 
   /* Khối ảo bay theo con trỏ chuột khi đang kéo */
   #drag-proxy {
-    position: fixed;
+    position: absolute;
     display: grid;
-    gap: 2px;
-    pointer-events: none; /* Tránh cản trở việc xác định ô bên dưới con chuột */
+    gap: 3px;
+    pointer-events: none; /* Rất quan trọng để không cản trở elementFromPoint */
     display: none;
     z-index: 9999;
-    transform: translate(-20px, -20px); /* Đặt tâm khối nằm gần đầu mút con trỏ */
   }
-  .drag-cell { width: 25px; height: 25px; border-radius: 4px; }
-  .drag-cell.filled { background: #f59e0b; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+  .drag-cell { width: 28px; height: 28px; border-radius: 4px; }
+  .drag-cell.filled { background: #f59e0b; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+  .drag-cell.empty { background: transparent; }
 </style>
 </head>
 <body>
@@ -69,32 +72,33 @@ game_html = r"""
 <div id="drag-proxy"></div>
 
 <script>
-  // Chặn hoàn toàn menu chuột phải trên toàn bộ trang game
+  // Chặn menu chuột phải mặc định trong khu vực game
   document.addEventListener('contextmenu', e => e.preventDefault());
 
   const gridEl = document.getElementById('grid');
   const scoreEl = document.getElementById('score');
   const piecesEl = document.getElementById('pieces');
   const dragProxy = document.getElementById('drag-proxy');
+  const container = document.getElementById('container');
 
   let score = 0;
   let board = Array(10).fill().map(() => Array(10).fill(0));
   
-  // Trạng thái kéo thả
   let isDragging = false;
   let draggedPieceIndex = null;
 
-  // Cấu trúc các khối hình hình học (Ma trận số tuyệt đối)
+  // SỬA LỖI 1: Khai báo định dạng ma trận số tuyệt đối cho các khối hình rõ ràng
   const pieceTemplates = [
-    [[1]], 
-    [[1, 1]], 
-    [[1, 1, 1]], 
-    [[1, 1], [1, 1]], 
-    [[1, 0], [1, 1]]
+    [[1]], // Khối 1x1
+    [[1, 1]], // Thanh ngang 2 ô
+    [[1, 1, 1]], // Thanh ngang 3 ô
+    [[1, 1], [1, 1]], // Khối vuông 2x2
+    [[1, 0], [1, 1]], // Khối chữ L nhỏ
+    [[1, 1, 1], [0, 1, 0]] // Khối chữ T
   ];
   let currentPieces = [];
 
-  // 1. Tạo bảng 10x10
+  // Tạo bảng ô lưới
   function initBoard() {
     gridEl.innerHTML = '';
     for (let r = 0; r < 10; r++) {
@@ -123,7 +127,7 @@ game_html = r"""
     }
   }
 
-  // 2. Tạo 3 khối ngẫu nhiên ở hàng dưới
+  // Sinh 3 khối mới
   function spawnPieces() {
     piecesEl.innerHTML = '';
     currentPieces = [];
@@ -146,7 +150,7 @@ game_html = r"""
         });
       });
 
-      // Lắng nghe sự kiện NHẤN CHUỘT PHẢI (button === 2)
+      // Bắt sự kiện Nhấn chuột phải
       pieceDiv.addEventListener('mousedown', (e) => {
         if (e.button === 2 && currentPieces[i] !== null) {
           isDragging = true;
@@ -160,7 +164,7 @@ game_html = r"""
     }
   }
 
-  // 3. Tạo khối đồ họa bám theo con trỏ chuột khi kéo
+  // Khối bóng ma chạy theo chuột
   function createDragProxy(piece) {
     dragProxy.innerHTML = '';
     dragProxy.style.display = 'grid';
@@ -170,24 +174,29 @@ game_html = r"""
     piece.forEach(row => {
       row.forEach(val => {
         const dCell = document.createElement('div');
-        dCell.className = 'drag-cell' + (val ? ' filled' : '');
+        dCell.className = val ? 'drag-cell filled' : 'drag-cell empty';
         dragProxy.appendChild(dCell);
       });
     });
   }
 
+  // SỬA LỖI 2: Đổi sang cách tính vị trí chuột theo tọa độ nội bộ của Thẻ Container (khắc phục lỗi Iframe)
   function updateDragProxyPosition(e) {
-    dragProxy.style.left = e.clientX + 'px';
-    dragProxy.style.top = e.clientY + 'px';
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    // Căn lề dịch sang một chút để con trỏ không che mất khối hình
+    dragProxy.style.left = (x - 20) + 'px';
+    dragProxy.style.top = (y - 20) + 'px';
   }
 
-  // 4. Xử lý di chuyển chuột và thả chuột trên toàn màn hình
+  // Lắng nghe di chuyển trên toàn màn hình game
   document.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     updateDragProxyPosition(e);
 
-    // Tìm xem chuột đang lướt qua ô nào trên bảng 10x10
     clearHoverEffects();
+    // Dùng trực tiếp tọa độ clientX/clientY để quét phần tử dưới chuột
     const cell = document.elementFromPoint(e.clientX, e.clientY);
     if (cell && cell.classList.contains('cell')) {
       const r = parseInt(cell.dataset.row);
@@ -196,23 +205,22 @@ game_html = r"""
     }
   });
 
+  // Thả chuột phải để đặt khối xuống
   document.addEventListener('mouseup', (e) => {
     if (!isDragging || e.button !== 2) return;
     isDragging = false;
     dragProxy.style.display = 'none';
 
-    // Xác định ô mà chuột nhả ra để thả khối xuống
     const cell = document.elementFromPoint(e.clientX, e.clientY);
     if (cell && cell.classList.contains('cell')) {
       const r = parseInt(cell.dataset.row);
       const c = parseInt(cell.dataset.col);
       placePiece(r, c);
     } else {
-      drawBoard(); // Trả lại trạng thái cũ nếu thả trượt ra ngoài
+      drawBoard();
     }
   });
 
-  // Hiển thị vị trí chuẩn bị thả khối xuống (Preview nhạt)
   function highlightPlacement(r, c) {
     const piece = currentPieces[draggedPieceIndex];
     if (!piece) return;
@@ -237,12 +245,11 @@ game_html = r"""
     }
   }
 
-  // 5. Logic đặt khối và tính điểm
   function placePiece(r, c) {
     const piece = currentPieces[draggedPieceIndex];
     if (!piece) return;
 
-    // Kiểm tra tính hợp lệ
+    // Kiểm tra xem vị trí đặt khối có hợp lệ hay không
     for (let pr = 0; pr < piece.length; pr++) {
       for (let pc = 0; pc < piece[pr].length; pc++) {
         if (piece[pr][pc]) {
@@ -250,13 +257,13 @@ game_html = r"""
           const targetC = c + pc;
           if (targetR >= 10 || targetC >= 10 || board[targetR][targetC] === 1) {
             drawBoard();
-            return; // Rớt ra ngoài hoặc trùng khối cũ -> không cho đặt
+            return; // Trùng lặp hoặc vượt biên -> Hủy đặt khối
           }
         }
       }
     }
 
-    // Ghi nhận khối rơi xuống thành công
+    // Ghi nhận khối vào bảng
     for (let pr = 0; pr < piece.length; pr++) {
       for (let pc = 0; pc < piece[pr].length; pc++) {
         if (piece[pr][pc]) {
@@ -265,10 +272,10 @@ game_html = r"""
       }
     }
 
-    // Làm mờ ô đã dùng ở hàng lựa chọn bên dưới
+    // Làm mờ khối đã đặt
     currentPieces[draggedPieceIndex] = null;
     const pieceDiv = piecesEl.querySelector(`[data-index="${draggedPieceIndex}"]`);
-    if (pieceDiv) pieceDiv.style.opacity = '0.1';
+    if (pieceDiv) pieceDiv.style.opacity = '0.15';
 
     checkLines();
     drawBoard();
@@ -278,7 +285,6 @@ game_html = r"""
     }
   }
 
-  // Kiểm tra ăn điểm hàng ngang / hàng dọc
   function checkLines() {
     let rowsToClear = [];
     let colsToClear = [];
@@ -298,19 +304,12 @@ game_html = r"""
       board[r] = Array(10).fill(0);
       score += 10;
     });
-    colsToClear.forEach(c => {
-      for (let r = 0; r < 10; r++) board[r][c] = 0;
-      score += 10;
-    });
-
-    scoreEl.innerText = score;
-  }
-
-  // Khởi động
-  initBoard();
-  spawnPieces();
-</script>
-
-</body>
-</html>
+colsToClear.forEach(c => {
+for (let r = 0; r < 10; r++) board[r][c] = 0;
+score += 10;
+});
+scoreEl.innerText = score;
+}
+initBoard();
+spawnPieces();
 """

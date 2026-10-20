@@ -10,10 +10,10 @@ st.set_page_config(
 
 st.title("🐦 Flappy Bird: Thung Lũng Đại Ngàn")
 st.markdown(
-    "**Cách chơi:** Click chuột trái vào khung game để giúp chim vỗ cánh bay lên!"
+    "**Cách chơi:** Click chuột trái vào khung game để giúp chim vỗ cánh đập liên tục và bay lên!"
 )
 
-# KHỐI CODE TRÒ CHƠI ĐÃ ĐƯỢC THU GỌN VÀ FIX LỖI CÚ PHÁP TUYỆT ĐỐI
+# KHỐI CODE TRÒ CHƠI HOÀN CHỈNH ĐÃ TÍCH HỢP HIỆU ỨNG VÕ CÁNH VÀ LÀM RÕ MỎ CHIM
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -47,7 +47,7 @@ game_html = r"""
   const startScreen = document.getElementById('start-screen');
 
   let gameRunning = false, score = 0, audioCtx = null, frameCount = 0, pipes = [];
-  const bird = { x: 70, y: 200, width: 28, height: 22, gravity: 0.15, velocity: 0, jump: -3.7 };
+  const bird = { x: 70, y: 200, width: 30, height: 24, gravity: 0.15, velocity: 0, jump: -3.7 };
   const pipeWidth = 58, pipeGap = 175, pipeSpeed = 1.4;
 
   function playJumpSound() {
@@ -98,11 +98,36 @@ game_html = r"""
       if (!p.passed && p.x + pipeWidth < bird.x) { p.passed = true; score++; scoreEl.innerText = score; }
       if (p.x + pipeWidth + 40 < 0) pipes.splice(i, 1);
     }
-    ctx.save(); ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2); ctx.rotate(Math.max(-0.2, Math.min(0.5, bird.velocity * 0.08)));
-    let bGrad = ctx.createRadialGradient(-2, -2, 2, 0, 0, bird.width/2); bGrad.addColorStop(0, '#fff176'); bGrad.addColorStop(1, '#f4511e'); ctx.fillStyle = bGrad; ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5, -4, 5, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(6, -4, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#f85818'; ctx.beginPath(); ctx.moveTo(7, -2); ctx.lineTo(16, 1); ctx.lineTo(5, 5); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#fff9c4'; ctx.beginPath(); ctx.arc(-6, 2, 5, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    
+    // VẼ CHÚ CHIM SẮC NÉT + HIỆU ỨNG VỖ CÁNH DỰA VÀO MATH.SIN
+    ctx.save(); 
+    ctx.translate(bird.x + bird.width/2, bird.y + bird.height/2); 
+    ctx.rotate(Math.max(-0.2, Math.min(0.5, bird.velocity * 0.08)));
+    
+    // Thân chim tròn vàng rực
+    let bGrad = ctx.createRadialGradient(-2, -2, 2, 0, 0, bird.width/2); 
+    bGrad.addColorStop(0, '#fff176'); bGrad.addColorStop(1, '#f4511e'); 
+    ctx.fillStyle = bGrad; ctx.beginPath(); ctx.arc(0, 0, bird.width/2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
+    
+    // Mắt chim rõ nét hơn
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(6, -4, 5.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(7, -4, 2.2, 0, Math.PI * 2); ctx.fill();
+    
+    // NÂNG CẤP: Làm rõ mỏ chim đỏ cam nổi bật vươn dài ra trước
+    ctx.fillStyle = '#f85818'; ctx.beginPath(); 
+    ctx.moveTo(9, -3); 
+    ctx.lineTo(20, 1); 
+    ctx.lineTo(7, 6); 
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    
+    // NÂNG CẤP: Hiệu ứng đập cánh liên tục lên xuống sống động
+    let wingOscillation = Math.sin(frameCount * 0.4) * 3; // Cánh co giãn nhịp nhàng
+    ctx.fillStyle = '#fff9c4'; ctx.beginPath(); 
+    ctx.arc(-6, 2 + wingOscillation / 2, 5 + wingOscillation / 3, 0, Math.PI * 2); 
+    ctx.fill(); ctx.stroke();
+    
+    ctx.restore();
     requestAnimationFrame(gameLoop);
   }
 </script>

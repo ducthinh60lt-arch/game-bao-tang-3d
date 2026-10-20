@@ -10,12 +10,13 @@ st.set_page_config(
 
 st.title("🐦 Siêu Game Flappy Bird Đồ Họa Đẹp")
 st.markdown(
-    "**Cập nhật mới:** \n"
-    "1. **Sửa lỗi va chạm:** Sửa góc khuất vô hình, chim bo sát ranh giới ống nước không còn chết oan nữa.\n"
-    "2. **Nâng cấp đồ họa:** Thêm hình nền thành phố, mây trời và hiệu ứng chim xoay đầu cực mượt!"
+    "**Cách chơi:** \n"
+    "1. Bấm nút **BẮT ĐẦU CHƠI** ở màn hình mở đầu để bắt đầu trận đấu.\n"
+    "2. **Click chuột trái vào bất kỳ vị trí nào trên khung game** để điều khiển chú chim bay lên (Có tiếng bíp khi nhảy).\n"
+    "3. Né tránh các đường ống nước màu xanh lá để ghi điểm số kỷ lục!"
 )
 
-# 2. Mã nguồn ứng dụng Game Flappy Bird nâng cấp đồ họa Pixel Art và thuật toán va chạm tròn
+# 2. Toàn bộ mã nguồn nhúng HTML5/JS/Canvas tích hợp trọn gói
 game_html = r"""
 <!doctype html>
 <html lang="vi">
@@ -30,7 +31,7 @@ game_html = r"""
   #score-board { font-size: 36px; font-weight: bold; color: #fff; text-shadow: 2px 2px 0px #000; font-family: monospace; }
   canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
   
-  /* Giao diện màn hình mở đầu */
+  /* Giao diện màn hình mở đầu và thông báo thua */
   .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #4ec0ca; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box; }
   .overlay-title { font-size: 34px; font-weight: bold; color: #fff; margin-bottom: 25px; text-shadow: 3px 3px 0px #000; letter-spacing: 1px; font-family: monospace; }
   .btn-main { width: 85%; padding: 12px; font-size: 18px; font-weight: bold; color: white; background: #f59e0b; border: 3px solid #fff; border-radius: 8px; cursor: pointer; transition: 0.2s; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); text-shadow: 1px 1px 2px rgba(0,0,0,0.5); }
@@ -65,20 +66,20 @@ game_html = r"""
   const bird = {
     x: 70,
     y: 200,
-    radius: 12,    // Dùng bán kính quét vòng tròn để sửa lỗi chết oan
-    gravity: 0.20, // Chỉnh nhẹ để bay lượn mượt mà hơn
+    radius: 12,    // Bán kính hình tròn bám sát thân chim để quét va chạm chính xác
+    gravity: 0.20, 
     velocity: 0,
     jump: -4.6,
-    angle: 0       // Góc xoay đầu của chú chim
+    angle: 0       
   };
 
   let pipes = [];
   const pipeWidth = 65;
-  const pipeGap = 150;   // Khoảng trống rộng rãi dễ chơi
-  const pipeSpeed = 1.8; // Tốc độ ống trượt chậm rãi vừa phải
+  const pipeGap = 150;   // Khoảng cách khe hở rộng rãi dễ chơi hơn bản cũ
+  const pipeSpeed = 1.8; // Tốc độ di chuyển vừa phải, không quá nhanh
   let frameCount = 0;
 
-  // Hiệu ứng âm thanh cánh đập bíp bíp
+  // Hiệu ứng âm thanh cánh đập bíp bíp tự động tổng hợp từ trình duyệt
   function playJumpSound() {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -119,21 +120,20 @@ game_html = r"""
 
   // HÀM VẼ NỀN THÀNH PHỐ PIXEL ART ĐẸP MẮT
   function drawBeautifulBackground() {
-    // 1. Màu trời Gradient mượt
+    // 1. Màu bầu trời xanh mượt
     ctx.fillStyle = '#4ec0ca';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Vẽ dãy tòa nhà chung cư mờ phía xa (Thành phố ban ngày)
+    // 2. Dãy tòa nhà mờ phía xa
     ctx.fillStyle = '#48b0ba';
     ctx.fillRect(0, canvas.height - 140, canvas.width, 60);
     ctx.fillStyle = '#3da3ad';
-    // Tạo hình răng cưa giả lập các khối nhà cao tầng
     for (let i = 0; i < canvas.width; i += 30) {
       let h = (i % 20 === 0) ? 70 : 50;
       ctx.fillRect(i, canvas.height - h - 80, 22, h);
     }
 
-    // 3. Vẽ dải cây xanh / công viên cây cỏ rậm rạp
+    // 3. Dải cây xanh công viên
     ctx.fillStyle = '#73bf2e';
     ctx.fillRect(0, canvas.height - 80, canvas.width, 20);
     ctx.fillStyle = '#9ece37';
@@ -143,7 +143,7 @@ game_html = r"""
       ctx.fill();
     }
 
-    // 4. Mặt đất phẳng chuyển động
+    // 4. Mặt đất dưới cùng
     ctx.fillStyle = '#ded895';
     ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
     ctx.fillStyle = '#dfd385';
@@ -155,25 +155,25 @@ game_html = r"""
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Vẽ nền cảnh quan trước
+    // Vẽ cảnh quan nền
     drawBeautifulBackground();
 
-    // Tính toán góc nghiêng đầu của chim dựa theo vận tốc rơi
+    // Tính toán góc nghiêng đầu của chim dựa theo trạng thái bay/rơi
     bird.velocity += bird.gravity;
     bird.y += bird.velocity;
     
     if (bird.velocity < 0) {
-      bird.angle = -0.3; // Ngẩng đầu lên khi vỗ cánh bay
+      bird.angle = -0.3; // Ngẩng đầu lên khi bay lên
     } else if (bird.velocity > 2) {
       bird.angle = Math.min(0.8, bird.angle + 0.05); // Chúc đầu xuống khi rơi tự do
     }
 
-    // VẼ CHÚ CHIM FLAPPY BIRD CHUẨN ĐỒ HỌA
+    // VẼ CHÚ CHIM FLAPPY BIRD CHI TIẾT
     ctx.save();
     ctx.translate(bird.x, bird.y);
     ctx.rotate(bird.angle);
 
-    // Thân chim hình tròn vàng có viền đen sắc nét
+    // Thân tròn vàng viền đen sắc nét
     ctx.fillStyle = '#f8d018';
     ctx.beginPath();
     ctx.arc(0, 0, bird.radius, 0, Math.PI * 2);
@@ -182,20 +182,19 @@ game_html = r"""
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Vẽ cánh chim màu trắng ở thân
+    // Cánh trắng bên hông
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.ellipse(-6, 2, 6, 4, Math.PI/6, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    // Mắt tròn to viền đen
+    // Mắt to tròn viền đen đặc trưng
     ctx.fillStyle = '#fff';
     ctx.beginPath();
     ctx.arc(5, -4, 5, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    // Con ngươi mắt
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.arc(6, -4, 1.8, 0, Math.PI * 2);
@@ -213,13 +212,13 @@ game_html = r"""
 
     ctx.restore();
 
-    // Thua cuộc nếu đập đất hoặc vượt trần
+    // Điều kiện thua cuộc khi chạm đất hoặc chạm trần
     if (bird.y + bird.radius >= canvas.height - 70 || bird.y - bird.radius <= 0) {
       gameOver();
       return;
     }
 
-    // Xử lý tạo lập các Ống Nước 3D tinh tế
+    // Xử lý sinh và di chuyển các cặp ống nước 3D đổ bóng dọc thân
     if (frameCount % 110 === 0) {
       const minHeight = 60;
       const maxHeight = (canvas.height - 70) - pipeGap - minHeight;
@@ -238,7 +237,7 @@ game_html = r"""
       let p = pipes[i];
       p.x -= pipeSpeed;
 
-      // ĐỔ MÀU ỐNG NƯỚC PIXEL 3D (Xanh lục đậm nhạt kết hợp đổ bóng dọc thân)
+      // Tạo hiệu ứng đổ bóng Gradient 3D cho các đường ống xanh lục
       // Ống phía trên
       let gradTop = ctx.createLinearGradient(p.x, 0, p.x + pipeWidth, 0);
       gradTop.addColorStop(0, '#53a018');
@@ -251,7 +250,7 @@ game_html = r"""
       ctx.strokeStyle = '#000';
       ctx.lineWidth = 2.5;
       ctx.strokeRect(p.x, -2, pipeWidth, p.top + 2);
-      // Gờ vành miệng ống trên
+      // Gờ vành miệng ống nước trên
       ctx.fillRect(p.x - 3, p.top - 20, pipeWidth + 6, 20);
       ctx.strokeRect(p.x - 3, p.top - 20, pipeWidth + 6, 20);
 
@@ -266,19 +265,47 @@ game_html = r"""
       ctx.fillStyle = gradBot;
       ctx.fillRect(p.x, bottomY, pipeWidth, p.bottom);
       ctx.strokeRect(p.x, bottomY, pipeWidth, p.bottom + 2);
-      // Gờ vành miệng ống dưới
+      // Gờ vành miệng ống nước dưới
       ctx.fillRect(p.x - 3, bottomY, pipeWidth + 6, 20);
       ctx.strokeRect(p.x - 3, bottomY, pipeWidth + 6, 20);
 
-      // SỬA LỖI VA CHẠM: Tính toán va chạm giữa tâm hình tròn (Chim) và hình chữ nhật (Ống)
+      // THUẬT TOÁN QUÉT VA CHẠM HÌNH TRÒN VÀ KHỐI CHỮ NHẬT CHUẨN XÁC CHỐNG CHẾT OAN
       if (checkCircleRectCollision(bird.x, bird.y, bird.radius, p.x, 0, pipeWidth, p.top) ||
           checkCircleRectCollision(bird.x, bird.y, bird.radius, p.x - 3, p.top - 20, pipeWidth + 6, 20) ||
-           SherwoodCollision(bird.x, bird.y, bird.radius, p.x, bottomY, pipeWidth, p.bottom) ||
+          checkCircleRectCollision(bird.x, bird.y, bird.radius, p.x, bottomY, pipeWidth, p.bottom) ||
           checkCircleRectCollision(bird.x, bird.y, bird.radius, p.x - 3, bottomY, pipeWidth + 6, 20)) {
         gameOver();
         return;
       }
 
-      // Vượt ống ghi điểm mượt
+      // Vượt qua ống nước thành công và ghi nhận điểm số mượt mà
+      if (!p.passed && p.x + pipeWidth < bird.x) {
+        p.passed = true;
+score++;
+scoreEl.innerText = score;
+}
+// Giải phóng phần tử đã trượt khỏi màn hình để tối ưu tài nguyên bộ nhớ
+if (p.x + pipeWidth < -10) {
+pipes.splice(i, 1);
+}
+}
+requestAnimationFrame(gameLoop);
+}
+// Hàm tính toán kiểm tra va chạm giữa tâm hình tròn (Chim) và hình khối chữ nhật (Ống)
+function checkCircleRectCollision(cx, cy, radius, rx, ry, rw, rh) {
+let closestX = Math.max(rx, Math.min(cx, rx + rw));
+let closestY = Math.max(ry, Math.min(cy, ry + rh));
+let distanceX = cx - closestX;
+let distanceY = cy - closestY;
+let distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+return distanceSquared < (radius * radius);
+}
+function gameOver() {
+gameRunning = false;
+document.querySelector('#start-screen .overlay-title').innerText = "GAME OVER! SCORE: " + score;
+document.querySelector('#start-screen .btn-main').innerText = "THỬ LẠI";
+startScreen.style.display = 'flex';
+}
+"""
 components.html(game_html, height=540, scrolling=False)
 
